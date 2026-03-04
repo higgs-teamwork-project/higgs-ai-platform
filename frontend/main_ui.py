@@ -2,6 +2,7 @@ import sys
 from PySide6.QtWidgets import (QApplication, QMainWindow, QWidget, QVBoxLayout, 
                                QLabel, QLineEdit, QPushButton, QMessageBox)
 from PySide6.QtCore import Qt
+import requests
 
 class LoginWindow(QMainWindow):
     def __init__(self):
@@ -42,13 +43,30 @@ class LoginWindow(QMainWindow):
         self.setCentralWidget(central_widget)
 
     def handle_login(self):
-        email = self.username_input.text()
-        password = self.password_input.text()
+        email_input = self.username_input.text()
+        password_input = self.password_input.text()
 
-        # TODO: Later, this is where Fan will send a request to YOUR backend API!
-        if email and password:
-            print(f"Attempting to log in with: {email}")
-            QMessageBox.information(self, "Success", "Login button clicked! (Backend connection pending)")
+        if email_input and password_input:
+            # 1. Package the data into a Python dictionary
+            payload = {
+                "email": email_input,
+                "password": password_input
+            }
+            
+            try:
+                # 2. Send it to the FastAPI backend!
+                response = requests.post("http://127.0.0.1:8000/api/login", json=payload)
+                
+                # 3. Read the backend's response
+                backend_data = response.json()
+                
+                if backend_data.get("status") == "success":
+                    QMessageBox.information(self, "Login Successful", backend_data.get("message"))
+                else:
+                    QMessageBox.warning(self, "Login Failed", backend_data.get("message"))
+                    
+            except requests.exceptions.ConnectionError:
+                QMessageBox.critical(self, "Server Error", "Could not connect to the backend server. Is it running?")
         else:
             QMessageBox.warning(self, "Error", "Please enter both email and password.")
 

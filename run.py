@@ -10,7 +10,7 @@ def main():
     # 1. Start the FastAPI backend
     print("[1/2] Booting up the FastAPI backend server...")
     backend_process = subprocess.Popen(
-        [sys.executable, "-m", "uvicorn", "backend.main:app", "--reload"]
+        [sys.executable, "-m", "uvicorn", "backend.main_api:app", "--reload"]
     )
 
     # Give the server 2 seconds to fully start up before launching the UI

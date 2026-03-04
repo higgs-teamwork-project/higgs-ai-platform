@@ -1,4 +1,5 @@
 fastapi
 uvicorn
 PySide6
+requests
 # Add your AI libraries here later (e.g., openai, langchain, etc.)
