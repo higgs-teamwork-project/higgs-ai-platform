@@ -1,0 +1,4 @@
+fastapi
+uvicorn
+PySide6
+# Add your AI libraries here later (e.g., openai, langchain, etc.)
