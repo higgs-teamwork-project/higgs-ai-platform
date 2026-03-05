@@ -1,7 +1,17 @@
 from fastapi import FastAPI
 from pydantic import BaseModel
 
+import database
+
 app = FastAPI()
+
+
+@app.on_event("startup")
+async def on_startup() -> None:
+    # Ensure the SQLite databases exist before handling any requests
+    database.initialize_all_databases()
+    # Seed a small amount of mock data to make the system usable before real imports
+    database.mock_data.seed_mock_data()
 
 # 1. Define the blueprint for the incoming data
 class LoginData(BaseModel):
