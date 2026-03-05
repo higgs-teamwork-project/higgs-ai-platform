@@ -137,7 +137,6 @@ The backend already calls this function on startup.
 ### 6. Initializing everything (`__init__.py`)
 
 
-
 ```python
 import database
 
@@ -153,4 +152,10 @@ You can call this once when the app starts.
 
 ---
 
+### 7. Helpers and filters
+
+- `helpers/` – contains extra search helpers like `helpers.search.find_ngos_by_sector(...)`.
+- `filters/` – reserved for future reusable filters once the final dataset is known.
+
+---
 

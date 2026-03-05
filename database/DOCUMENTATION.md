@@ -86,6 +86,55 @@ insert_ngo(
 
 ---
 
+#### 1.7 `get_donor(donor_id: int) -> Optional[sqlite3.Row]`
+
+- **Purpose**: Fetch a single donor by ID.
+- **Inputs**:
+  - `donor_id` – the primary key ID of the donor.
+- **Output**:
+  - A `sqlite3.Row` with the donor data, or `None` if no donor exists with that ID.
+
+#### 1.8 `get_ngo(ngo_id: int) -> Optional[sqlite3.Row]`
+
+- **Purpose**: Fetch a single NGO by ID.
+- **Inputs**:
+  - `ngo_id` – the primary key ID of the NGO.
+- **Output**:
+  - A `sqlite3.Row` with the NGO data, or `None` if no NGO exists with that ID.
+
+#### 1.9 `update_donor_embedding(donor_id: int, embedding: bytes) -> None`
+
+- **Purpose**: Update the embedding vector for a donor.
+- **Inputs**:
+  - `donor_id` – ID of the donor to update.
+  - `embedding` – new embedding bytes to store.
+- **Output**: `None`.
+- **Side effects**: Updates the `embedding` column in the `donors` table.
+
+#### 1.10 `update_ngo_embedding(ngo_id: int, embedding: bytes) -> None`
+
+- **Purpose**: Update the embedding vector for an NGO.
+- **Inputs**:
+  - `ngo_id` – ID of the NGO to update.
+  - `embedding` – new embedding bytes to store.
+- **Output**: `None`.
+- **Side effects**: Updates the `embedding` column in the `ngos` table.
+
+#### 1.11 `save_match(donor_id: int, ngo_id: int, similarity: float, notes: Optional[str] = None) -> int`
+
+- **Purpose**: Insert or update a similarity match between a donor and an NGO.
+- **Inputs**:
+  - `donor_id` – ID of the donor.
+  - `ngo_id` – ID of the NGO.
+  - `similarity` – similarity score (for example, cosine similarity).
+  - `notes` – optional free‑text notes.
+- **Output**: integer ID of the match row.
+- **Side effects**:
+  - Inserts a new row if no match exists for that `(donor_id, ngo_id)` pair.
+  - If a row already exists, updates the `similarity` (and `notes` when provided).
+
+---
+
 ### 2. `accounts_db` – user accounts
 
 Module: `database.accounts_db`
@@ -207,4 +256,32 @@ import database
 database.initialize_all_databases()
 database.dataset_db.list_donors()
 ```
+
+---
+
+### 6. `helpers` – search helpers
+
+Module: `database.helpers.search`
+
+#### 6.1 `find_ngos_by_sector(sector: str) -> list`
+
+- **Purpose**: Find NGOs whose `sectors` text contains the given sector (case-insensitive).
+- **Inputs**:
+  - `sector` – sector name fragment to search for, e.g. `"Environment"`.
+- **Output**: a list of `sqlite3.Row` NGOs matching the condition.
+
+#### 6.2 `find_ngos_by_region(region: str) -> list`
+
+- **Purpose**: Find NGOs whose `regions` text contains the given region (case-insensitive).
+- **Inputs**:
+  - `region` – region fragment, e.g. `"Greece"` or `"Athens"`.
+- **Output**: a list of `sqlite3.Row` NGOs matching the condition.
+
+#### 6.3 `find_ngos_by_sectors_any(sectors: Iterable[str]) -> list`
+
+- **Purpose**: Find NGOs that match **any** sector in a list.
+- **Inputs**:
+  - `sectors` – an iterable of sector strings; empty or all-empty input returns an empty list.
+- **Output**: a list of `sqlite3.Row` NGOs that match at least one of the sectors.
+
 
