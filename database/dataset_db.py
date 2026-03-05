@@ -159,6 +159,93 @@ def list_ngos() -> list[sqlite3.Row]:
         conn.close()
 
 
+def get_donor(donor_id: int) -> Optional[sqlite3.Row]:
+    """
+    Return a single donor row by ID, or None if it does not exist.
+    """
+    conn = get_connection()
+    try:
+        cur = conn.cursor()
+        cur.execute("SELECT * FROM donors WHERE id = ?", (donor_id,))
+        return cur.fetchone()
+    finally:
+        conn.close()
+
+
+def get_ngo(ngo_id: int) -> Optional[sqlite3.Row]:
+    """
+    Return a single NGO row by ID, or None if it does not exist.
+    """
+    conn = get_connection()
+    try:
+        cur = conn.cursor()
+        cur.execute("SELECT * FROM ngos WHERE id = ?", (ngo_id,))
+        return cur.fetchone()
+    finally:
+        conn.close()
+
+
+def update_donor_embedding(donor_id: int, embedding: bytes) -> None:
+    """
+    Update the embedding column for a donor.
+    """
+    conn = get_connection()
+    try:
+        cur = conn.cursor()
+        cur.execute(
+            "UPDATE donors SET embedding = ? WHERE id = ?",
+            (embedding, donor_id),
+        )
+        conn.commit()
+    finally:
+        conn.close()
+
+
+def update_ngo_embedding(ngo_id: int, embedding: bytes) -> None:
+    """
+    Update the embedding column for an NGO.
+    """
+    conn = get_connection()
+    try:
+        cur = conn.cursor()
+        cur.execute(
+            "UPDATE ngos SET embedding = ? WHERE id = ?",
+            (embedding, ngo_id),
+        )
+        conn.commit()
+    finally:
+        conn.close()
+
+
+def save_match(
+    donor_id: int,
+    ngo_id: int,
+    similarity: float,
+    notes: Optional[str] = None,
+) -> int:
+    """
+    Insert or update a donor/NGO match with a similarity score.
+    Returns the ID of the match row.
+    """
+    conn = get_connection()
+    try:
+        cur = conn.cursor()
+        cur.execute(
+            """
+            INSERT INTO donor_ngo_matches (donor_id, ngo_id, similarity, notes)
+            VALUES (?, ?, ?, ?)
+            ON CONFLICT(donor_id, ngo_id) DO UPDATE SET
+                similarity = excluded.similarity,
+                notes = COALESCE(excluded.notes, donor_ngo_matches.notes)
+            """,
+            (donor_id, ngo_id, similarity, notes),
+        )
+        conn.commit()
+        return int(cur.lastrowid)
+    finally:
+        conn.close()
+
+
 def _join(values: Optional[Iterable[str]]) -> Optional[str]:
     if values is None:
         return None
