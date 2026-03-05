@@ -4,4 +4,6 @@ PySide6
 requests
 pandas
 openpyxl
-# Add your AI libraries here later (e.g., openai, langchain, etc.)
+sentence-transformers
+numpy
+# torch is installed automatically as a dependency of sentence-transformers
