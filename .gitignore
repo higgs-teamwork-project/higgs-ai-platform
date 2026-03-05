@@ -1,0 +1,17 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+.venv/
+venv/
+env/
+
+# Local databases (recreated when you run the app or test_database.py)
+data/*.db
+data/*.db-journal
+
+# IDE / OS
+.idea/
+.vscode/
+*.swp
+.DS_Store
