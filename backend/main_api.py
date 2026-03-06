@@ -15,7 +15,7 @@ async def process_login(data: LoginData):
     print("--------------------------------------------------")
     print(f"BACKEND RECEIVED LOGIN ATTEMPT:")
     print(f"Email: {data.email}")
-    print(f"Password: {data.password}") # In reality, never print passwords!
+    # Dont print password
     print("--------------------------------------------------")
     
     # Check if the credentials match a dummy user
