@@ -67,7 +67,7 @@ async def register_account(data: RegisterData):
         return {"status": "success", "message": f"Account created with ID {account_id}"}
     except Exception as e:
         raise HTTPException(status_code=400, detail=str(e))
-    
+        
 @app.get("/api/donors")
 async def get_all_donors():
     doners = database.dataset_db.list_donors()
