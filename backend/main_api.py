@@ -4,8 +4,9 @@ from pydantic import BaseModel
 import database
 import ai_core.api as ai_api
 
-app = FastAPI()
+import database.accounts_db as accounts_db
 
+app = FastAPI()
 
 @app.on_event("startup")
 async def on_startup() -> None:
@@ -22,19 +23,17 @@ class LoginData(BaseModel):
 # 2. Create the POST endpoint to receive the data
 @app.post("/api/login")
 async def process_login(data: LoginData):
-    # This is where your backend officially reads the frontend data!
-    print("--------------------------------------------------")
-    print(f"BACKEND RECEIVED LOGIN ATTEMPT:")
-    print(f"Email: {data.email}")
-    print(f"Password: {data.password}") # In reality, never print passwords!
-    print("--------------------------------------------------")
-    
-    # Check if the credentials match a dummy user
-    if data.email == "admin@higgs.org" and data.password == "password123":
-        return {"status": "success", "message": "Welcome to HIGGS!"}
-    else:
-        return {"status": "error", "message": "Invalid email or password"}
+    # Endpoint to handle login requests from the frontend
+    is_valid = accounts_db.verify_credentials(data.email, data.password)
 
+    print(f"Login attempt for email: {data.email} - {'SUCCESS' if is_valid else 'FAILURE'}")
+    
+    if is_valid:
+        return {"status": "success", "message": "Welcome to HIGGS AI matchmaking platform!"}
+    else:
+        # FastAPI's standard way to handle errors
+        raise HTTPException(status_code=401, detail="Invalid email or password")
+    
 
 @app.get("/api/donors/{donor_id}/recommendations")
 async def get_donor_recommendations(
@@ -55,3 +54,26 @@ async def get_donor_recommendations(
         save_matches=save_matches,
     )
     return {"donor_id": donor_id, "recommendations": results}
+
+class RegisterData(BaseModel):
+    email: str
+    password: str
+    role: str
+
+@app.post("/api/register")
+async def register_account(data: RegisterData):
+    try:
+        account_id = accounts_db.create_account(data.email, data.password, data.role)
+        return {"status": "success", "message": f"Account created with ID {account_id}"}
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+@app.get("/api/donors")
+async def get_all_donors():
+    donors = database.dataset_db.list_donors()
+    return [dict(donor) for donor in donors]
+
+@app.get("/api/ngos")
+async def get_all_ngos():
+    ngos = database.dataset_db.list_ngos()
+    return [dict(ngo) for ngo in ngos]
