@@ -1,24 +1,5 @@
 # Backend API Documentation
 
-This document outlines the core FastAPI application (`main_api.py`) that serves as the central controller for the HIGGS AI Platform. It acts as the bridge connecting the PySide6 frontend UI to the local SQLite databases and the AI matchmaking engine.
-
-## Overview
-
-The backend is built using **FastAPI** and uses **Pydantic** to enforce strict data validation. It handles user authentication, data retrieval (Donors/NGOs), and triggers the AI recommendations.
-
----
-
-## 🚀 Startup Behavior
-
-When the FastAPI server boots up (via `uvicorn`), it triggers an `@app.on_event("startup")` lifecycle hook:
-
-1. **Database Initialization:** It calls `database.initialize_all_databases()` to ensure the `accounts.db` and `dataset.db` SQLite files and their respective tables exist.
-2. **Mock Data Seeding:** It calls `database.mock_data.seed_mock_data()` to populate the databases with a small set of dummy users, donors, and NGOs so the frontend has immediate data to test with.
-
----
-
-## Authentication Endpoints
-
 ### 1. Register a New Account
 * **URL:** `/api/register`
 * **Method:** `POST`
