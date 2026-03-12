@@ -58,12 +58,11 @@ async def get_donor_recommendations(
 class RegisterData(BaseModel):
     email: str
     password: str
-    role: str
 
 @app.post("/api/register")
 async def register_account(data: RegisterData):
     try:
-        account_id = accounts_db.create_account(data.email, data.password, data.role)
+        account_id = accounts_db.create_account(data.email, data.password)
         return {"status": "success", "message": f"Account created with ID {account_id}"}
     except Exception as e:
         raise HTTPException(status_code=400, detail=str(e))
