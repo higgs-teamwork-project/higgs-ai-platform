@@ -22,6 +22,7 @@ class RegistrationWindow(QMainWindow):
         # Email input
         self.email_input = QLineEdit()
         self.email_input.setPlaceholderText("Organization Email")
+        self.email_input.textChanged.connect(self.validate_form) # Check form validity on text change
         
         # Password input
         self.password_input = QLineEdit()
@@ -35,10 +36,28 @@ class RegistrationWindow(QMainWindow):
         self.confirm_password_input.setEchoMode(QLineEdit.Password)
         self.confirm_password_input.textChanged.connect(self.validate_form) # Check form validity on text change 
 
+        # Error label for form validation feedback
+        self.error_label = QLabel("")
+        self.error_label.setStyleSheet("color: red; font-size: 12px; margin-bottom: 5px;")
+        self.error_label.setAlignment(Qt.AlignCenter)
+
         # Register button
         self.register_button = QPushButton("Register")
+        self.register_button.setStyleSheet("""
+            QPushButton {
+                padding: 8px; 
+                background-color: #28a745; 
+                color: white; 
+                font-weight: bold;
+                border-radius: 4px;
+            }
+            QPushButton:disabled {
+                background-color: #a5d6a7; /* Lighter/Faded Green */
+                color: #eeeeee;            /* Faded Text */
+                border: 1px solid #cccccc;
+            }   
+        """)
         self.register_button.setEnabled(False) # Disable the register button until the form is valid
-        self.register_button.setStyleSheet("padding: 8px; background-color: #28a745; color: white; font-weight: bold;")
         self.register_button.clicked.connect(self.handle_register)
 
         # Back to login button
@@ -51,6 +70,7 @@ class RegistrationWindow(QMainWindow):
         layout.addWidget(self.email_input)
         layout.addWidget(self.password_input)
         layout.addWidget(self.confirm_password_input)
+        layout.addWidget(self.error_label)
         layout.addWidget(self.register_button)
         layout.addWidget(self.back_button)
 
@@ -70,17 +90,18 @@ class RegistrationWindow(QMainWindow):
         # Enable the register button only if all fields are filled and passwords match
         if email_valid and password_secure and passwords_match:
             self.register_button.setEnabled(True)
+            self.error_label.setText("") # Clear any previous error messages
             self.register_button.setToolTip("Ready to register")
         else:
             self.register_button.setEnabled(False)
 
             # Provide feedback on why the form is invalid
             if not email_valid:
-                self.register_button.setToolTip("Please enter a valid email address")
+                self.error_label.setText("Please enter a valid email address")
             elif not password_secure:
-                self.register_button.setToolTip("Password must be at least 6 characters")
+                self.error_label.setText("Password must be at least 6 characters")
             elif not passwords_match:
-                self.register_button.setToolTip("Passwords do not match")
+                self.error_label.setText("Passwords do not match")
 
     # The user presses the register button and we send the data to the backend
     def handle_register(self):
