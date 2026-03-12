@@ -1,6 +1,3 @@
-Here is the complete, ready-to-copy Markdown file. You can paste this directly into a new file named `DOCUMENTATION.md` inside your `backend` folder.
-
-```markdown
 # Backend API Documentation
 
 This document outlines the core FastAPI application (`main_api.py`) that serves as the central controller for the HIGGS AI Platform. It acts as the bridge connecting the PySide6 frontend UI to the local SQLite databases and the AI matchmaking engine.
@@ -30,8 +27,7 @@ When the FastAPI server boots up (via `uvicorn`), it triggers an `@app.on_event(
   ```json
   {
     "email": "user@organization.org",
-    "password": "securepassword123",
-    "role": "donor" 
+    "password": "securepassword123", 
   }
 
 ```
