@@ -12,7 +12,7 @@ os.environ['QT_QPA_PLATFORM_PLUGIN_PATH'] = plugin_path
 from PySide6.QtWidgets import (QApplication, QMainWindow, QWidget, QVBoxLayout, 
                              QHBoxLayout, QLabel, QLineEdit, QPushButton, 
                              QComboBox, QProgressBar, QStackedWidget, QDialog,
-                             QMessageBox, QListWidget, QListWidgetItem)
+                             QMessageBox, QTreeWidget, QTreeWidgetItem, QListWidgetItem)
 from PySide6.QtCore import Qt, QTimer
 from PySide6.QtGui import QFont, QIntValidator
 
@@ -90,24 +90,27 @@ class ManageNGODialog(QDialog):
 
         layout.addWidget(QLabel("<br><b>Existing NGO Database:</b>"))
         
-        # --- Section: List & Delete ---
-        self.ngo_list = QListWidget()
+        # List of NGOs with multiple columns
+        self.ngo_list = QTreeWidget()
+        self.ngo_list.setColumnCount(4)
+        self.ngo_list.setHeaderLabels(["Name", "Strategy", "Focus", "Legal Form"])
+        
+        # Style the header and the list
         self.ngo_list.setStyleSheet(f"""
-            QListWidget {{
+            QHeaderView::section {{
+                background-color: {COLOR_GREY};
+                padding: 4px;
+                border: 1px solid {COLOR_WHITE};
+                font-weight: bold;
+                color: {COLOR_BLACK};
+            }}
+            QTreeWidget {{
                 border: 1px solid {COLOR_GREY}; 
                 border-radius: 8px; 
                 background-color: {COLOR_WHITE};
-                color: {COLOR_BLACK};  /* <--- THIS FIXES THE EMPTY LOOK */
+                color: {COLOR_BLACK};
                 font-family: '{FONT_FAMILY}';
                 font-size: 13px;
-            }}
-            QListWidget::item {{
-                padding: 5px;
-                color: {COLOR_BLACK};  /* Ensures the items themselves are black */
-            }}
-            QListWidget::item:selected {{
-                background-color: {COLOR_GREY};
-                color: {COLOR_BLACK};
             }}
         """)
         layout.addWidget(self.ngo_list)
@@ -170,46 +173,44 @@ class ManageNGODialog(QDialog):
             QMessageBox.critical(self, "Error", f"An unexpected error occurred: {str(e)}")
 
     def refresh_data(self):
-        """Fetches the latest NGO list from the backend and updates the UI."""
-        self.ngo_list.clear() # Clear the UI list
+        """Fetches the latest NGO list and populates all 4 columns."""
+        self.ngo_list.clear()
         try:
-            # 1. Fetch from your Backend GET endpoint
             response = requests.get("http://127.0.0.1:8000/api/ngos")
             if response.status_code == 200:
-                ngos = response.json()
-                for ngo in ngos:
-                    # 2. Format the display string (Name  | Strategy)
-                    display_text = f"{ngo['name']} | {ngo.get('strategy', 'N/A')}"
-                    item = QListWidgetItem(display_text)
+                for ngo in response.json():
+                    # Create a multi-column item
+                    item = QTreeWidgetItem([
+                        ngo.get('name', ''),
+                        ngo.get('strategy', 'N/A'),
+                        ngo.get('focus', 'N/A'),
+                        ngo.get('legal_form', 'N/A')
+                    ])
                     
-                    # 3. CRITICAL: Store the ID so the Delete button knows which one to target
-                    item.setData(Qt.UserRole, ngo['id']) 
-                    self.ngo_list.addItem(item)
-            else:
-                print("Failed to fetch NGOs: Backend returned error status.")
+                    # Store the ID in the first column's UserRole for deletion
+                    item.setData(0, Qt.UserRole, ngo['id']) 
+                    self.ngo_list.addTopLevelItem(item)
         except Exception as e:
-            print(f"Error connecting to backend: {e}")
+            print(f"Fetch error: {e}")
 
     def delete_selected_ngo(self):
-        """Deletes selected NGO and triggers a list refresh on success."""
+        # Get the currently selected item
         current_item = self.ngo_list.currentItem()
         if not current_item:
             QMessageBox.warning(self, "Selection Error", "Please select an NGO to delete.")
             return
 
-        # Retrieve the ID we stored in the UserRole
-        ngo_id = current_item.data(Qt.UserRole)
+        # Retrieve the ID from column 0
+        ngo_id = current_item.data(0, Qt.UserRole)
         
         try:
-            # Send the ID in a list to match your DeleteNGOsBody schema
+            # Send to your existing delete endpoint
             response = requests.delete("http://127.0.0.1:8000/api/ngos", json={"ids": [ngo_id]})
             if response.status_code == 200:
-                QMessageBox.information(self, "Deleted", "NGO removed from database.")
-                self.refresh_data()  # <--- CRITICAL: Refresh the list
-            else:
-                QMessageBox.warning(self, "Error", "Failed to delete NGO.")
+                QMessageBox.information(self, "Deleted", "NGO removed successfully.")
+                self.refresh_data()
         except Exception as e:
-            QMessageBox.critical(self, "Connection Error", str(e))
+            QMessageBox.critical(self, "Error", str(e))
 
 
 class HIGGSApp(QMainWindow):
