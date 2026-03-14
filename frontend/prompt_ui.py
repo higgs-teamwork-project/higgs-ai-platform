@@ -92,7 +92,24 @@ class ManageNGODialog(QDialog):
         
         # --- Section: List & Delete ---
         self.ngo_list = QListWidget()
-        self.ngo_list.setStyleSheet(f"border: 1px solid {COLOR_GREY}; border-radius: 8px;")
+        self.ngo_list.setStyleSheet(f"""
+            QListWidget {{
+                border: 1px solid {COLOR_GREY}; 
+                border-radius: 8px; 
+                background-color: {COLOR_WHITE};
+                color: {COLOR_BLACK};  /* <--- THIS FIXES THE EMPTY LOOK */
+                font-family: '{FONT_FAMILY}';
+                font-size: 13px;
+            }}
+            QListWidget::item {{
+                padding: 5px;
+                color: {COLOR_BLACK};  /* Ensures the items themselves are black */
+            }}
+            QListWidget::item:selected {{
+                background-color: {COLOR_GREY};
+                color: {COLOR_BLACK};
+            }}
+        """)
         layout.addWidget(self.ngo_list)
         
         btn_del = QPushButton("Delete Selected NGO")
@@ -154,22 +171,22 @@ class ManageNGODialog(QDialog):
 
     def refresh_data(self):
         """Fetches the latest NGO list from the backend and updates the UI."""
-        self.ngo_list.clear() # Clear the old list items
+        self.ngo_list.clear() # Clear the UI list
         try:
-            # Request the full list from your database_db endpoint
+            # 1. Fetch from your Backend GET endpoint
             response = requests.get("http://127.0.0.1:8000/api/ngos")
             if response.status_code == 200:
                 ngos = response.json()
                 for ngo in ngos:
-                    # Create a display string (Name | Strategy)
+                    # 2. Format the display string (Name  | Strategy)
                     display_text = f"{ngo['name']} | {ngo.get('strategy', 'N/A')}"
                     item = QListWidgetItem(display_text)
                     
-                    # Store the hidden Database ID so we can delete it later
+                    # 3. CRITICAL: Store the ID so the Delete button knows which one to target
                     item.setData(Qt.UserRole, ngo['id']) 
                     self.ngo_list.addItem(item)
             else:
-                print("Failed to fetch NGOs")
+                print("Failed to fetch NGOs: Backend returned error status.")
         except Exception as e:
             print(f"Error connecting to backend: {e}")
 
