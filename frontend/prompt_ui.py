@@ -64,22 +64,22 @@ class ManageNGODialog(QDialog):
         layout.addWidget(QLabel("<b>Add New NGO Profile</b>"))
         
         self.name_input = QLineEdit()
-        self.name_input.setPlaceholderText("NGO Name (Required)")
+        self.name_input.setPlaceholderText("NGO Name")
         self.name_input.setStyleSheet(INPUT_STYLE_DEFAULT)
         layout.addWidget(self.name_input)
 
         self.strategy_input = QLineEdit()
-        self.strategy_input.setPlaceholderText("NGO Strategy (e.g. Environmental)")
+        self.strategy_input.setPlaceholderText("NGO Strategy")
         self.strategy_input.setStyleSheet(INPUT_STYLE_DEFAULT)
         layout.addWidget(self.strategy_input)
 
         self.focus_input = QLineEdit()
-        self.focus_input.setPlaceholderText("Focus Area (e.g. Reforestation)")
+        self.focus_input.setPlaceholderText("Focus Area")
         self.focus_input.setStyleSheet(INPUT_STYLE_DEFAULT)
         layout.addWidget(self.focus_input)
 
         self.legal_input = QLineEdit()
-        self.legal_input.setPlaceholderText("Legal Form (e.g. gGmbH, Foundation)")
+        self.legal_input.setPlaceholderText("Legal Form")
         self.legal_input.setStyleSheet(INPUT_STYLE_DEFAULT)
         layout.addWidget(self.legal_input)
         
@@ -103,55 +103,96 @@ class ManageNGODialog(QDialog):
         self.refresh_data()
 
     def add_ngo_to_db(self):
-        """Matches your AddNGOBody backend model"""
+        """Sends a POST request to the backend and shows success/failure prompts."""
         name = self.name_input.text().strip()
+        
+        # Frontend validation prompt
         if not name:
-            QMessageBox.warning(self, "Validation Error", "NGO Name is mandatory!")
+            QMessageBox.warning(self, "Input Error", "NGO Name is mandatory!")
             return
 
-        # Bundle all details from the form
         payload = {
             "name": name,
-            "strategy": self.strategy_input.text().strip(),
-            "focus": self.focus_input.text().strip(),
-            "legal_form": self.legal_input.text().strip()
+            "strategy": self.strategy_input.text().strip() or None,
+            "focus": self.focus_input.text().strip() or None,
+            "legal_form": self.legal_input.text().strip() or None
         }
 
         try:
+            # Send the data to your updated /api/ngos endpoint
             response = requests.post("http://127.0.0.1:8000/api/ngos", json=payload)
-            if response.status_code == 200:
-                # Clear all fields after success
-                for widget in [self.name_input, self.strategy_input, self.focus_input, self.legal_input]:
-                    widget.clear()
+            backend_data = response.json()
+            
+            # Success Prompt
+            if response.status_code == 200 and backend_data.get("status") == "ok":
+                QMessageBox.information(
+                    self, 
+                    "NGO Added", 
+                    f"Successfully added '{name}' to the database.\nID: {backend_data.get('id')}"
+                )
+                # Clear fields and refresh the list
+                self.name_input.clear()
+                self.strategy_input.clear()
+                self.focus_input.clear()
+                self.legal_input.clear()
                 self.refresh_data()
+            
+            # Unsuccessful Prompt (Backend rejected)
             else:
-                QMessageBox.warning(self, "Error", response.json().get("detail", "Failed to add NGO."))
+                error_msg = backend_data.get("detail", "The server rejected the request.")
+                QMessageBox.critical(self, "Add Failed", f"Could not save NGO: {error_msg}")
+
+        # Unsuccessful Prompt (Connection error)
+        except requests.exceptions.ConnectionError:
+            QMessageBox.critical(
+                self, 
+                "Connection Error", 
+                "Could not connect to the backend. Is the server running?"
+            )
         except Exception as e:
-            QMessageBox.critical(self, "Connection Error", f"Is the backend running? {e}")
+            QMessageBox.critical(self, "Error", f"An unexpected error occurred: {str(e)}")
 
     def refresh_data(self):
-        self.ngo_list.clear()
+        """Fetches the latest NGO list from the backend and updates the UI."""
+        self.ngo_list.clear() # Clear the old list items
         try:
+            # Request the full list from your database_db endpoint
             response = requests.get("http://127.0.0.1:8000/api/ngos")
             if response.status_code == 200:
-                for ngo in response.json():
-                    # Format the list display to show some details
+                ngos = response.json()
+                for ngo in ngos:
+                    # Create a display string (Name | Strategy)
                     display_text = f"{ngo['name']} | {ngo.get('strategy', 'N/A')}"
                     item = QListWidgetItem(display_text)
+                    
+                    # Store the hidden Database ID so we can delete it later
                     item.setData(Qt.UserRole, ngo['id']) 
                     self.ngo_list.addItem(item)
-        except:
-            pass
+            else:
+                print("Failed to fetch NGOs")
+        except Exception as e:
+            print(f"Error connecting to backend: {e}")
 
     def delete_selected_ngo(self):
+        """Deletes selected NGO and triggers a list refresh on success."""
         current_item = self.ngo_list.currentItem()
-        if current_item:
-            ngo_id = current_item.data(Qt.UserRole)
-            try:
-                requests.delete("http://127.0.0.1:8000/api/ngos", json={"ids": [ngo_id]})
-                self.refresh_data()
-            except:
-                pass
+        if not current_item:
+            QMessageBox.warning(self, "Selection Error", "Please select an NGO to delete.")
+            return
+
+        # Retrieve the ID we stored in the UserRole
+        ngo_id = current_item.data(Qt.UserRole)
+        
+        try:
+            # Send the ID in a list to match your DeleteNGOsBody schema
+            response = requests.delete("http://127.0.0.1:8000/api/ngos", json={"ids": [ngo_id]})
+            if response.status_code == 200:
+                QMessageBox.information(self, "Deleted", "NGO removed from database.")
+                self.refresh_data()  # <--- CRITICAL: Refresh the list
+            else:
+                QMessageBox.warning(self, "Error", "Failed to delete NGO.")
+        except Exception as e:
+            QMessageBox.critical(self, "Connection Error", str(e))
 
 
 class HIGGSApp(QMainWindow):
@@ -231,8 +272,7 @@ class HIGGSApp(QMainWindow):
         # --- 4. NGO BUTTONS ---
         ngo_btn_layout = QHBoxLayout()
         
-        self.btn_add_ngo = QPushButton("Add NGOs")
-        self.btn_del_ngo = QPushButton("Delete NGOs")
+        self.btn_manage_ngos = QPushButton("Manage NGOs")
         
         button_style = f"""
             QPushButton {{
@@ -246,15 +286,12 @@ class HIGGSApp(QMainWindow):
             QPushButton:hover {{ background-color: {COLOR_GREY}; }}
         """
 
-        self.btn_add_ngo.setStyleSheet(button_style)
-        self.btn_del_ngo.setStyleSheet(button_style)
+        self.btn_manage_ngos.setStyleSheet(button_style)
 
         # Connect the buttons to the new management functions
-        self.btn_add_ngo.clicked.connect(self.open_ngo_manager)
-        self.btn_del_ngo.clicked.connect(self.open_ngo_manager) 
+        self.btn_manage_ngos.clicked.connect(self.open_ngo_manager)
         
-        ngo_btn_layout.addWidget(self.btn_add_ngo)
-        ngo_btn_layout.addWidget(self.btn_del_ngo)
+        ngo_btn_layout.addWidget(self.btn_manage_ngos)
         card_layout.addLayout(ngo_btn_layout)
 
         # --- 5. GENERATE BUTTON ---
@@ -329,45 +366,6 @@ class HIGGSApp(QMainWindow):
     def open_ngo_manager(self):
         self.dialog = ManageNGODialog(self)
         self.dialog.exec()
-
-    def handle_add_ngo_dialog(self):
-        """Opens a simple dialog to add a new NGO."""
-        from PySide6.QtWidgets import QInputDialog
-        name, ok = QInputDialog.getText(self, "Add NGO", "Enter NGO Name:")
-        if ok and name.strip():
-            import requests
-            payload = {"name": name.strip()}
-            try:
-                response = requests.post("http://127.0.0.1:8000/api/ngos", json=payload)
-                if response.status_code == 200:
-                    QMessageBox.information(self, "Success", f"Added: {name}")
-                else:
-                    QMessageBox.warning(self, "Error", "Failed to add NGO.")
-            except Exception as e:
-                QMessageBox.critical(self, "Error", f"Connection failed: {e}")
-
-    def handle_delete_ngo_dialog(self):
-        """Opens a list to select an NGO to delete."""
-        import requests
-        try:
-            # 1. Get the current list of NGOs
-            response = requests.get("http://127.0.0.1:8000/api/ngos")
-            ngos = response.json()
-            ngo_names = [f"{n['id']}: {n['name']}" for n in ngos]
-
-            # 2. Show selection dialog
-            from PySide6.QtWidgets import QInputDialog
-            item, ok = QInputDialog.getItem(self, "Delete NGO", "Select NGO to remove:", ngo_names, 0, False)
-            
-            if ok and item:
-                # 3. Extract the ID and send delete request
-                ngo_id = int(item.split(":")[0])
-                # Note: We send a list [id] because your backend expects DeleteNGOsBody(ids: list[int])
-                payload = {"ids": [ngo_id]}
-                requests.delete("http://127.0.0.1:8000/api/ngos", json=payload)
-                QMessageBox.information(self, "Success", "NGO deleted successfully.")
-        except Exception as e:
-            QMessageBox.critical(self, "Error", f"Could not fetch or delete: {e}")
 
 if __name__ == "__main__":
     app = QApplication(sys.argv)
