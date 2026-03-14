@@ -92,15 +92,70 @@ def get_recommendations_for_donor(
         blob = _ensure_ngo_embedding(ngo)
         candidate_vecs.append((ngo["id"], blob))
 
-    ranked = matching.rank_by_similarity(query_vec, candidate_vecs, top_k=top_k)
+    # Ask for more than top_k so we can dedupe by name and still return top_k
+    rank_limit = min(top_k * 10, len(candidate_vecs))
+    ranked = matching.rank_by_similarity(query_vec, candidate_vecs, top_k=rank_limit)
     ngo_by_id = {n["id"]: n for n in candidates}
 
     results = []
+    seen_ngo_names = set()
     for ngo_id, score in ranked:
-        ngo = dataset_db.get_ngo(ngo_id)  # fresh row for response
-        ngo_dict = {k: ngo[k] for k in ngo.keys() if k != "embedding"} if ngo else {}
+        ngo = dataset_db.get_ngo(ngo_id)
+        if not ngo:
+            continue
+        name = (ngo["name"] if ngo["name"] else "").strip()
+        if name in seen_ngo_names:
+            continue
+        seen_ngo_names.add(name)
+        ngo_dict = {k: ngo[k] for k in ngo.keys() if k != "embedding"}
         results.append({"ngo_id": ngo_id, "ngo": ngo_dict, "score": score})
         if save_matches:
             dataset_db.save_match(donor_id, ngo_id, score)
+        if len(results) >= top_k:
+            break
+
+    return results
+
+
+def get_recommendations_for_donor_profile(
+    donor_name: str,
+    donor_strategy: str,
+    top_k: int = 50,
+) -> List[dict]:
+    """
+    Rank NGOs by similarity to an ad-hoc donor (name + strategy only).
+    Does not use the donors table; does not persist anything.
+    Returns list of {"ngo_id", "ngo", "score"} sorted by score descending, deduped by NGO name.
+    """
+    profile_row = {"name": (donor_name or "").strip(), "strategy": (donor_strategy or "").strip()}
+    text = profile.build_donor_profile_text(profile_row)
+    query_vec = embeddings.encode(text) if text else embeddings.encode(" ")
+
+    candidates = _ngo_candidates(None)
+    if not candidates:
+        return []
+
+    candidate_vecs = []
+    for ngo in candidates:
+        blob = _ensure_ngo_embedding(ngo)
+        candidate_vecs.append((ngo["id"], blob))
+
+    rank_limit = min(top_k * 10, len(candidate_vecs))
+    ranked = matching.rank_by_similarity(query_vec, candidate_vecs, top_k=rank_limit)
+
+    results = []
+    seen_names = set()
+    for ngo_id, score in ranked:
+        ngo = dataset_db.get_ngo(ngo_id)
+        if not ngo:
+            continue
+        name = (ngo["name"] if ngo["name"] else "").strip()
+        if name in seen_names:
+            continue
+        seen_names.add(name)
+        ngo_dict = {k: ngo[k] for k in ngo.keys() if k != "embedding"}
+        results.append({"ngo_id": ngo_id, "ngo": ngo_dict, "score": score})
+        if len(results) >= top_k:
+            break
 
     return results
