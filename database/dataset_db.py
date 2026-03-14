@@ -31,6 +31,8 @@ def initialize_schema() -> None:
             CREATE TABLE IF NOT EXISTS donors (
                 id              INTEGER PRIMARY KEY AUTOINCREMENT,
                 name            TEXT NOT NULL,
+                legal_form      TEXT,
+                strategy        TEXT,
                 sectors         TEXT,
                 regions         TEXT,
                 description     TEXT,
@@ -46,6 +48,9 @@ def initialize_schema() -> None:
             CREATE TABLE IF NOT EXISTS ngos (
                 id              INTEGER PRIMARY KEY AUTOINCREMENT,
                 name            TEXT NOT NULL,
+                legal_form      TEXT,
+                strategy        TEXT,
+                focus           TEXT,
                 sectors         TEXT,
                 regions         TEXT,
                 description     TEXT,
@@ -79,6 +84,8 @@ def initialize_schema() -> None:
 
 def insert_donor(
     name: str,
+    legal_form: Optional[str] = None,
+    strategy: Optional[str] = None,
     sectors: Optional[Iterable[str]] = None,
     regions: Optional[Iterable[str]] = None,
     description: Optional[str] = None,
@@ -90,11 +97,13 @@ def insert_donor(
         cur = conn.cursor()
         cur.execute(
             """
-            INSERT INTO donors (name, sectors, regions, description, keywords, embedding)
-            VALUES (?, ?, ?, ?, ?, ?)
+            INSERT INTO donors (name, legal_form, strategy, sectors, regions, description, keywords, embedding)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?)
             """,
             (
                 name,
+                legal_form,
+                strategy,
                 _join(sectors),
                 _join(regions),
                 description,
@@ -110,6 +119,9 @@ def insert_donor(
 
 def insert_ngo(
     name: str,
+    legal_form: Optional[str] = None,
+    strategy: Optional[str] = None,
+    focus: Optional[str] = None,
     sectors: Optional[Iterable[str]] = None,
     regions: Optional[Iterable[str]] = None,
     description: Optional[str] = None,
@@ -121,11 +133,14 @@ def insert_ngo(
         cur = conn.cursor()
         cur.execute(
             """
-            INSERT INTO ngos (name, sectors, regions, description, keywords, embedding)
-            VALUES (?, ?, ?, ?, ?, ?)
+            INSERT INTO ngos (name, legal_form, strategy, focus, sectors, regions, description, keywords, embedding)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
             """,
             (
                 name,
+                legal_form,
+                strategy,
+                focus,
                 _join(sectors),
                 _join(regions),
                 description,
@@ -181,6 +196,42 @@ def get_ngo(ngo_id: int) -> Optional[sqlite3.Row]:
         cur = conn.cursor()
         cur.execute("SELECT * FROM ngos WHERE id = ?", (ngo_id,))
         return cur.fetchone()
+    finally:
+        conn.close()
+
+
+def delete_ngo(ngo_id: int) -> bool:
+    """
+    Delete one NGO by ID. Also removes donor_ngo_matches for this NGO.
+    Returns True if a row was deleted.
+    """
+    conn = get_connection()
+    try:
+        cur = conn.cursor()
+        cur.execute("DELETE FROM donor_ngo_matches WHERE ngo_id = ?", (ngo_id,))
+        cur.execute("DELETE FROM ngos WHERE id = ?", (ngo_id,))
+        conn.commit()
+        return cur.rowcount > 0
+    finally:
+        conn.close()
+
+
+def delete_ngos(ngo_ids: Iterable[int]) -> int:
+    """
+    Delete multiple NGOs by ID. Also removes donor_ngo_matches for them.
+    Returns the number of NGOs deleted.
+    """
+    ids = list(ngo_ids)
+    if not ids:
+        return 0
+    conn = get_connection()
+    try:
+        cur = conn.cursor()
+        placeholders = ",".join("?" * len(ids))
+        cur.execute(f"DELETE FROM donor_ngo_matches WHERE ngo_id IN ({placeholders})", ids)
+        cur.execute(f"DELETE FROM ngos WHERE id IN ({placeholders})", ids)
+        conn.commit()
+        return cur.rowcount
     finally:
         conn.close()
 
