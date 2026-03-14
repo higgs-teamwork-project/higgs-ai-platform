@@ -12,9 +12,8 @@ import ai_core.api as ai_api
 def main() -> None:
 
 
-    print("1. Initializing database and seeding mock data...")
+    print("1. Initializing database (using current data, no mock)...")
     database.initialize_all_databases()
-    database.mock_data.seed_mock_data()
 
     print("2. Building embeddings for donors and NGOs (this may take a moment)...")
     ai_api.ensure_embeddings()
