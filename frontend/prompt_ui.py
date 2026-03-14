@@ -12,7 +12,7 @@ os.environ['QT_QPA_PLATFORM_PLUGIN_PATH'] = plugin_path
 from PySide6.QtWidgets import (QApplication, QMainWindow, QWidget, QVBoxLayout, 
                              QHBoxLayout, QLabel, QLineEdit, QPushButton, 
                              QComboBox, QProgressBar, QStackedWidget, QDialog,
-                             QMessageBox)
+                             QMessageBox, QListWidget, QListWidgetItem)
 from PySide6.QtCore import Qt, QTimer
 from PySide6.QtGui import QFont, QIntValidator
 
@@ -26,12 +26,15 @@ FONT_FAMILY = "Inter"
 
 # Basis-Style für Eingabefelder (8px Radius, grauer Rand)
 INPUT_STYLE_DEFAULT = f"""
-    border: 2px solid {COLOR_GREY}; 
-    border-radius: 8px; 
-    padding: 10px; 
-    background-color: {COLOR_WHITE};
-    font-family: '{FONT_FAMILY}';
-    font-size: 14px;
+    QLineEdit {{
+        border: 2px solid {COLOR_GREY}; 
+        border-radius: 8px; 
+        padding: 10px; 
+        background-color: {COLOR_WHITE};
+        color: {COLOR_BLACK};  
+        font-family: '{FONT_FAMILY}';
+        font-size: 14px;
+    }}
 """
 # Style für leere Pflichtfelder (roter Rand)
 INPUT_STYLE_ERROR = f"""
@@ -39,53 +42,174 @@ INPUT_STYLE_ERROR = f"""
     border-radius: 8px; 
     padding: 10px; 
     background-color: {COLOR_WHITE};
+    color: {COLOR_BLACK};  
     font-family: '{FONT_FAMILY}';
     font-size: 14px;
 """
 
-class LoadingDialog(QDialog):
-    """Der Dialog, der während der 'Backend'-Analyse angezeigt wird."""
+import requests
+
+# Add class to handle ngo management dialog (Extension)
+class ManageNGODialog(QDialog):
     def __init__(self, parent=None):
         super().__init__(parent)
-        self.setWindowTitle("Loading")
-        self.setFixedSize(400, 200)
-        self.setStyleSheet(f"background-color: {COLOR_WHITE}; border-radius: 16px;")
+        self.setWindowTitle("Add & Manage NGOs")
+        self.setMinimumSize(450, 650)
+        self.setStyleSheet(f"background-color: {COLOR_WHITE}; border-radius: 12px;")
         
         layout = QVBoxLayout(self)
-        layout.setContentsMargins(30, 30, 30, 30)
-        layout.setAlignment(Qt.AlignCenter)
+        layout.setSpacing(10)
 
-        # Status Text
-        self.lbl_status = QLabel("HIGGS AI is analyzing data...")
-        self.lbl_status.setFont(QFont(FONT_FAMILY, 16, QFont.Bold))
-        self.lbl_status.setAlignment(Qt.AlignCenter)
-        layout.addWidget(self.lbl_status)
+        # Section: Add New NGO Form
+        layout.addWidget(QLabel("<b>Add New NGO Profile</b>"))
+        
+        self.name_input = QLineEdit()
+        self.name_input.setPlaceholderText("NGO Name")
+        self.name_input.setStyleSheet(INPUT_STYLE_DEFAULT)
+        layout.addWidget(self.name_input)
 
-        # Progress Bar (Extension)
-        self.progress = QProgressBar()
-        self.progress.setStyleSheet(f"""
-            QProgressBar {{ border: 2px solid {COLOR_GREY}; border-radius: 8px; text-align: center; }}
-            QProgressBar::chunk {{ background-color: {COLOR_GREEN}; border-radius: 6px; }}
+        self.strategy_input = QLineEdit()
+        self.strategy_input.setPlaceholderText("NGO Strategy")
+        self.strategy_input.setStyleSheet(INPUT_STYLE_DEFAULT)
+        layout.addWidget(self.strategy_input)
+
+        self.focus_input = QLineEdit()
+        self.focus_input.setPlaceholderText("Focus Area")
+        self.focus_input.setStyleSheet(INPUT_STYLE_DEFAULT)
+        layout.addWidget(self.focus_input)
+
+        self.legal_input = QLineEdit()
+        self.legal_input.setPlaceholderText("Legal Form")
+        self.legal_input.setStyleSheet(INPUT_STYLE_DEFAULT)
+        layout.addWidget(self.legal_input)
+        
+        btn_add = QPushButton("Save NGO to Database")
+        btn_add.setStyleSheet(f"background-color: {COLOR_GREEN}; color: white; padding: 12px; font-weight: bold; border-radius: 8px;")
+        btn_add.clicked.connect(self.add_ngo_to_db)
+        layout.addWidget(btn_add)
+
+        layout.addWidget(QLabel("<br><b>Existing NGO Database:</b>"))
+        
+        # --- Section: List & Delete ---
+        self.ngo_list = QListWidget()
+        self.ngo_list.setStyleSheet(f"""
+            QListWidget {{
+                border: 1px solid {COLOR_GREY}; 
+                border-radius: 8px; 
+                background-color: {COLOR_WHITE};
+                color: {COLOR_BLACK};  /* <--- THIS FIXES THE EMPTY LOOK */
+                font-family: '{FONT_FAMILY}';
+                font-size: 13px;
+            }}
+            QListWidget::item {{
+                padding: 5px;
+                color: {COLOR_BLACK};  /* Ensures the items themselves are black */
+            }}
+            QListWidget::item:selected {{
+                background-color: {COLOR_GREY};
+                color: {COLOR_BLACK};
+            }}
         """)
-        self.progress.setValue(0)
-        layout.addWidget(self.progress)
+        layout.addWidget(self.ngo_list)
+        
+        btn_del = QPushButton("Delete Selected NGO")
+        btn_del.setStyleSheet(f"background-color: {COLOR_RED}; color: white; padding: 10px; font-weight: bold; border-radius: 8px;")
+        btn_del.clicked.connect(self.delete_selected_ngo)
+        layout.addWidget(btn_del)
 
-        # Timer für die Simulation der KI-Berechnung
-        self.timer = QTimer()
-        self.timer.timeout.connect(self.update_progress)
-        self.step = 0
+        self.refresh_data()
 
-    def start_loading(self):
-        self.step = 0
-        self.progress.setValue(0)
-        self.timer.start(30) # Alle 30ms updaten
+    def add_ngo_to_db(self):
+        """Sends a POST request to the backend and shows success/failure prompts."""
+        name = self.name_input.text().strip()
+        
+        # Frontend validation prompt
+        if not name:
+            QMessageBox.warning(self, "Input Error", "NGO Name is mandatory!")
+            return
 
-    def update_progress(self):
-        self.step += 1
-        self.progress.setValue(self.step)
-        if self.step >= 100:
-            self.timer.stop()
-            self.accept() # Schließt den Dialog erfolgreich
+        payload = {
+            "name": name,
+            "strategy": self.strategy_input.text().strip() or None,
+            "focus": self.focus_input.text().strip() or None,
+            "legal_form": self.legal_input.text().strip() or None
+        }
+
+        try:
+            # Send the data to your updated /api/ngos endpoint
+            response = requests.post("http://127.0.0.1:8000/api/ngos", json=payload)
+            backend_data = response.json()
+            
+            # Success Prompt
+            if response.status_code == 200 and backend_data.get("status") == "ok":
+                QMessageBox.information(
+                    self, 
+                    "NGO Added", 
+                    f"Successfully added '{name}' to the database.\nID: {backend_data.get('id')}"
+                )
+                # Clear fields and refresh the list
+                self.name_input.clear()
+                self.strategy_input.clear()
+                self.focus_input.clear()
+                self.legal_input.clear()
+                self.refresh_data()
+            
+            # Unsuccessful Prompt (Backend rejected)
+            else:
+                error_msg = backend_data.get("detail", "The server rejected the request.")
+                QMessageBox.critical(self, "Add Failed", f"Could not save NGO: {error_msg}")
+
+        # Unsuccessful Prompt (Connection error)
+        except requests.exceptions.ConnectionError:
+            QMessageBox.critical(
+                self, 
+                "Connection Error", 
+                "Could not connect to the backend. Is the server running?"
+            )
+        except Exception as e:
+            QMessageBox.critical(self, "Error", f"An unexpected error occurred: {str(e)}")
+
+    def refresh_data(self):
+        """Fetches the latest NGO list from the backend and updates the UI."""
+        self.ngo_list.clear() # Clear the UI list
+        try:
+            # 1. Fetch from your Backend GET endpoint
+            response = requests.get("http://127.0.0.1:8000/api/ngos")
+            if response.status_code == 200:
+                ngos = response.json()
+                for ngo in ngos:
+                    # 2. Format the display string (Name  | Strategy)
+                    display_text = f"{ngo['name']} | {ngo.get('strategy', 'N/A')}"
+                    item = QListWidgetItem(display_text)
+                    
+                    # 3. CRITICAL: Store the ID so the Delete button knows which one to target
+                    item.setData(Qt.UserRole, ngo['id']) 
+                    self.ngo_list.addItem(item)
+            else:
+                print("Failed to fetch NGOs: Backend returned error status.")
+        except Exception as e:
+            print(f"Error connecting to backend: {e}")
+
+    def delete_selected_ngo(self):
+        """Deletes selected NGO and triggers a list refresh on success."""
+        current_item = self.ngo_list.currentItem()
+        if not current_item:
+            QMessageBox.warning(self, "Selection Error", "Please select an NGO to delete.")
+            return
+
+        # Retrieve the ID we stored in the UserRole
+        ngo_id = current_item.data(Qt.UserRole)
+        
+        try:
+            # Send the ID in a list to match your DeleteNGOsBody schema
+            response = requests.delete("http://127.0.0.1:8000/api/ngos", json={"ids": [ngo_id]})
+            if response.status_code == 200:
+                QMessageBox.information(self, "Deleted", "NGO removed from database.")
+                self.refresh_data()  # <--- CRITICAL: Refresh the list
+            else:
+                QMessageBox.warning(self, "Error", "Failed to delete NGO.")
+        except Exception as e:
+            QMessageBox.critical(self, "Connection Error", str(e))
 
 
 class HIGGSApp(QMainWindow):
@@ -165,23 +289,26 @@ class HIGGSApp(QMainWindow):
         # --- 4. NGO BUTTONS ---
         ngo_btn_layout = QHBoxLayout()
         
-        btn_add_ngo = QPushButton("Add NGOs")
-        btn_del_ngo = QPushButton("Delete NGOs")
+        self.btn_manage_ngos = QPushButton("Manage NGOs")
         
-        for btn in [btn_add_ngo, btn_del_ngo]:
-            btn.setStyleSheet(f"""
-                QPushButton {{
-                    background-color: {COLOR_WHITE};
-                    color: {COLOR_BLACK};
-                    border: 2px solid {COLOR_GREY};
-                    border-radius: 8px;
-                    padding: 10px;
-                    font-weight: bold;
-                }}
-                QPushButton:hover {{ background-color: {COLOR_GREY}; }}
-            """)
-            ngo_btn_layout.addWidget(btn)
+        button_style = f"""
+            QPushButton {{
+                background-color: {COLOR_WHITE};
+                color: {COLOR_BLACK};
+                border: 2px solid {COLOR_GREY};
+                border-radius: 8px;
+                padding: 10px;
+                font-weight: bold;
+            }}
+            QPushButton:hover {{ background-color: {COLOR_GREY}; }}
+        """
+
+        self.btn_manage_ngos.setStyleSheet(button_style)
+
+        # Connect the buttons to the new management functions
+        self.btn_manage_ngos.clicked.connect(self.open_ngo_manager)
         
+        ngo_btn_layout.addWidget(self.btn_manage_ngos)
         card_layout.addLayout(ngo_btn_layout)
 
         # --- 5. GENERATE BUTTON ---
@@ -253,8 +380,56 @@ class HIGGSApp(QMainWindow):
             # If failed: Display dialogue (Hier simuliert, falls der Dialog abgebrochen würde)
             QMessageBox.critical(self, "Fail to Generate", "An error occurred during AI matching.")
 
+    def open_ngo_manager(self):
+        self.dialog = ManageNGODialog(self)
+        self.dialog.exec()
+
 if __name__ == "__main__":
     app = QApplication(sys.argv)
     window = HIGGSApp()
     window.show()
     sys.exit(app.exec())
+
+class LoadingDialog(QDialog):
+    """Der Dialog, der während der 'Backend'-Analyse angezeigt wird."""
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        self.setWindowTitle("Loading")
+        self.setFixedSize(400, 200)
+        self.setStyleSheet(f"background-color: {COLOR_WHITE}; border-radius: 16px;")
+        
+        layout = QVBoxLayout(self)
+        layout.setContentsMargins(30, 30, 30, 30)
+        layout.setAlignment(Qt.AlignCenter)
+
+        # Status Text
+        self.lbl_status = QLabel("HIGGS AI is analyzing data...")
+        self.lbl_status.setFont(QFont(FONT_FAMILY, 16, QFont.Bold))
+        self.lbl_status.setAlignment(Qt.AlignCenter)
+        layout.addWidget(self.lbl_status)
+
+        # Progress Bar (Extension)
+        self.progress = QProgressBar()
+        self.progress.setStyleSheet(f"""
+            QProgressBar {{ border: 2px solid {COLOR_GREY}; border-radius: 8px; text-align: center; }}
+            QProgressBar::chunk {{ background-color: {COLOR_GREEN}; border-radius: 6px; }}
+        """)
+        self.progress.setValue(0)
+        layout.addWidget(self.progress)
+
+        # Timer für die Simulation der KI-Berechnung
+        self.timer = QTimer()
+        self.timer.timeout.connect(self.update_progress)
+        self.step = 0
+
+    def start_loading(self):
+        self.step = 0
+        self.progress.setValue(0)
+        self.timer.start(30) # Alle 30ms updaten
+
+    def update_progress(self):
+        self.step += 1
+        self.progress.setValue(self.step)
+        if self.step >= 100:
+            self.timer.stop()
+            self.accept() # Schließt den Dialog erfolgreich

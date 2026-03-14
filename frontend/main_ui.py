@@ -4,6 +4,7 @@ import requests
 from PySide6.QtWidgets import (QApplication, QMainWindow, QWidget, QVBoxLayout, 
                                QLabel, QLineEdit, QPushButton, QMessageBox)
 from PySide6.QtCore import Qt
+from prompt_ui import HIGGSApp
 
 # ---- THE MAGIC LINK: Import your new file here! ----
 from registration_ui import RegistrationWindow 
@@ -45,8 +46,14 @@ class LoginWindow(QMainWindow):
         central_widget.setLayout(layout)
         self.setCentralWidget(central_widget)
 
-        # It still works exactly the same because we imported the class!
+        # Instantiate the registration window so we can show it when needed 
         self.registration_window = RegistrationWindow(self)
+        self.prompt_window = HIGGSApp()  # Instantiate the prompt window for later use
+
+    # Opens up the prompt window after successful login
+    def open_dashboard(self):
+        self.hide()
+        self.prompt_window.show()
 
     def handle_login(self):
         email_input = self.username_input.text()
@@ -59,6 +66,7 @@ class LoginWindow(QMainWindow):
                 backend_data = response.json()
                 if response.status_code == 200 and backend_data.get("status") == "success":
                     QMessageBox.information(self, "Login Successful", backend_data.get("message"))
+                    self.open_dashboard()
                 else:
                     QMessageBox.warning(self, "Login Failed", backend_data.get("detail", "Invalid credentials"))
             except requests.exceptions.ConnectionError:

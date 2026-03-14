@@ -114,8 +114,8 @@ async def register_account(data: RegisterData):
         account_id = accounts_db.create_account(
             data.email,
             data.password,
-            approved=False,
-            verified=False,
+            approved=True, # for testing
+            verified=True, # for testing
             is_admin=False,
         )
         return {"status": "success", "message": f"Account created with ID {account_id}"}
