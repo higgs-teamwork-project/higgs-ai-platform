@@ -6,9 +6,10 @@ __pycache__/
 venv/
 env/
 
-# Local databases (recreated when you run the app or test_database.py)
+# Local data (recreated when you run the app or scripts)
 data/*.db
 data/*.db-journal
+data/export_file/
 
 # IDE / OS
 .idea/

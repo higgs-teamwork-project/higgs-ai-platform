@@ -1,5 +1,6 @@
 fastapi
 uvicorn
+python-multipart
 PySide6
 requests
 pandas
