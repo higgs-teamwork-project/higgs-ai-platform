@@ -1,6 +1,6 @@
 ## AI Core (short guide)
 
-This folder contains the AI matching pipeline: it turns donor and NGO profiles into text, encodes them with a sentence-transformers model, and ranks NGOs by similarity for each donor.
+This folder contains the AI matching pipeline used by the **desktop app**’s backend: it turns donor and NGO profiles into text, encodes them with a sentence-transformers model, and ranks NGOs by similarity for each donor. The backend (FastAPI) calls this layer; it is not a public web API.
 
 ---
 
@@ -38,9 +38,11 @@ for r in results:
 
 - **`ensure_embeddings()`** – For every donor and NGO that has no embedding, build profile text, encode it, and save it to the database. Safe to call many times.
 - **`get_recommendations_for_donor(donor_id, top_k=10, ngo_ids=None, save_matches=False)`**
-  - Returns a list of `{"ngo_id", "ngo": {...}, "score": float}` sorted by score (best first).
-  - `ngo_ids`: if you pass a list of NGO IDs, only those NGOs are considered (e.g. after sector/region filters).
-  - `save_matches=True`: also writes each (donor_id, ngo_id, similarity) into the `donor_ngo_matches` table.
+  - Returns a list of `{"ngo_id", "ngo": {...}, "score": float}` sorted by score (best first). Use when the donor is stored in the DB.
+  - `ngo_ids`: if provided, only those NGOs are considered.
+  - `save_matches=True`: writes each (donor_id, ngo_id, similarity) into `donor_ngo_matches`.
+- **`get_recommendations_for_donor_profile(donor_name, donor_strategy, top_k=50)`**
+  - **Single-donor matchmaking**: donor is **not** in the DB; you pass name and strategy as strings. Returns list of `{"ngo_id", "ngo", "score"}` ranked by similarity. Used by `POST /api/matchmaking/generate`; the backend then normalizes scores to 0–100% and filters.
 
 ---
 
@@ -61,25 +63,29 @@ When the real Excel arrives and columns or fields change, only these two functio
 
 ---
 
-### 6. Demo script
+### 6. Demo and test scripts
 
-To see the full pipeline (DB + embeddings + recommendations) in one go:
-
-```bash
-python -m ai_core.demo
-```
-
-This initializes the database, seeds mock data, builds embeddings, and prints top NGO matches for each donor. First run can be slow while the model loads.
+- **`python scripts/run_ai_demo.py`** – Uses your existing donors and NGOs (load them first with the import scripts). Builds embeddings, then prints top-5 NGO matches for the first 3 donors. No mock data.
+- **`python -m ai_core.demo`** – Same idea; uses whatever is in the DB (no mock seed). Builds embeddings and prints top-3 matches per donor.
+- **`python scripts/test_matchmaking_api.py`** – Backend test: list NGOs/donors, call matchmaking generate/export with real-sounding donors, validate 400 for missing fields. Requires backend running (`uvicorn backend.main_api:app --reload`).
 
 ---
 
-### 7. HTTP API
+### 7. HTTP API (matchmaking and recommendations)
 
 The backend exposes:
 
-- **`GET /api/donors/{donor_id}/recommendations?top_k=10&save_matches=false`**
+- **`GET /api/donors/{donor_id}/recommendations?top_k=10&save_matches=false`**  
+  For donors stored in the DB. Returns `{"donor_id", "recommendations": [{ "ngo_id", "ngo", "score" }, ...]}`.
 
-Returns `{"donor_id": 1, "recommendations": [{ "ngo_id", "ngo", "score" }, ...]}`.
+- **`POST /api/matchmaking/generate`**  
+  Single-donor matchmaking (donor not in DB). Body: `{ "donor_name", "donor_strategy", "match_threshold_percent"?: number }`. Returns matches with **normalized scores** (0–100%, best = 100%) and drops matches too far below the top. Uses `get_recommendations_for_donor_profile` then normalizes in the backend.
+
+- **`POST /api/matchmaking/export`**  
+  Same body as generate. Runs matchmaking and **writes the CSV to `data/export_file/matchmaking_results.csv`** (overwrites each time). Returns JSON: `{ "saved_to", "path_absolute", "filename", "total_matched" }`. The desktop app can open the file at `path_absolute`.
+
+- **`POST /api/ensure-embeddings`**  
+  Precompute embeddings for all donors and NGOs that don't have one.
 
 ---
 
