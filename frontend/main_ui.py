@@ -8,6 +8,7 @@ from prompt_ui import HIGGSApp
 
 # ---- THE MAGIC LINK: Import your new file here! ----
 from registration_ui import RegistrationWindow 
+from dashboard_ui import DashboardWindow
 
 class LoginWindow(QMainWindow):
     def __init__(self):
@@ -48,12 +49,13 @@ class LoginWindow(QMainWindow):
 
         # Instantiate the registration window so we can show it when needed 
         self.registration_window = RegistrationWindow(self)
-        self.prompt_window = HIGGSApp()  # Instantiate the prompt window for later use
+        self.dashboard_window = DashboardWindow()  # Instantiate the dashboard window for later use
 
-    # Opens up the prompt window after successful login
+    # Opens up the dashboard window after successful login
     def open_dashboard(self):
         self.hide()
-        self.prompt_window.show()
+        self.dashboard_window = DashboardWindow(parent_window=self)  # Create a new instance of the dashboard
+        self.dashboard_window.show()
 
     def handle_login(self):
         email_input = self.username_input.text()
