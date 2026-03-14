@@ -29,12 +29,11 @@ def get_model():
                 "sentence-transformers is required for embeddings. "
                 "Install with: pip install sentence-transformers"
             )
-        if not MODEL_PATH.exists():
-            raise FileNotFoundError(
-                f"Model not found at {MODEL_PATH}. "
-                "Ensure the model is saved under ai_core/model/all-MiniLM-L6-v2.pt"
-            )
-        _model = SentenceTransformer(str(MODEL_PATH))
+        if MODEL_PATH.exists():
+            _model = SentenceTransformer(str(MODEL_PATH))
+        else:
+            # Fallback: download all-MiniLM-L6-v2 from HuggingFace (same dimension)
+            _model = SentenceTransformer("all-MiniLM-L6-v2")
     return _model
 
 

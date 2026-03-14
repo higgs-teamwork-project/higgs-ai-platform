@@ -1,6 +1,9 @@
 # HIGGS AI Platform
 
-Internal platform to help HIGGS staff match donors with NGOs using AI. The app stores donor and NGO profiles, builds semantic embeddings, and returns the best NGO matches for each donor.
+**Desktop application** (PySide6) for HIGGS staff to match donors with NGOs using AI. The app stores donor and NGO profiles, builds semantic embeddings, and returns the best NGO matches for each donor.
+
+- **Desktop app**: the UI runs on your machine; you start it with `python run.py`.
+- **Backend**: a local FastAPI server that the desktop app talks to. It is not a public web API—it serves only this desktop client. Routes are referred to as “endpoints” or “backend routes” in the docs.
 
 ---
 
@@ -73,30 +76,35 @@ This installs FastAPI, PySide6, pandas, sentence-transformers, etc. The first ti
 
 ### 5. Run the app
 
-**Full app (backend + desktop UI):**
+**Full desktop app (recommended):**
 
 ```bash
 python run.py
 ```
 
-This starts the FastAPI backend and the PySide6 window. Close the window to stop both.
+This starts the **backend** (FastAPI) and the **desktop window** (PySide6). The desktop app talks to the backend over HTTP on localhost. Close the window to stop both.
 
-**Backend only (e.g. to call the API with a browser or Postman):**
+**Backend only** (e.g. for scripts or debugging):
 
 ```bash
 uvicorn backend.main_api:app --reload
 ```
 
-Then open e.g. `http://127.0.0.1:8000/docs` for the API docs.
+Then you can call the endpoints from scripts or open `http://127.0.0.1:8000/docs` for the interactive docs.
 
-### 6. Useful Python commands (from project root, venv active)
+### 6. Useful commands (from project root, venv active)
 
 | What you want to do              | Command |
 |----------------------------------|---------|
 | Run the full app                 | `python run.py` |
 | Run backend only                 | `uvicorn backend.main_api:app --reload` |
+| **Load donors** (Book 1 Excel)   | `python scripts/import_donors_book1.py` or `python scripts/import_donors_book1.py path/to/book1.xlsx` |
+| **Load NGOs** (Book 2 Excel)     | `python scripts/import_ngos_book2.py` or `python scripts/import_ngos_book2.py path/to/book2.xlsx` |
+| Precompute embeddings            | `python scripts/run_ai_demo.py` (or call `POST /api/ensure-embeddings` after backend is up) |
+| Demo AI matching (your data)     | `python scripts/run_ai_demo.py` |
+| Test matchmaking API (backend)   | `python scripts/test_matchmaking_api.py` (backend must be running) |
 | Test the database layer          | `python -m database.test_database` |
-| Demo the AI matching pipeline    | `python -m ai_core.demo` |
+| Demo AI (legacy, no mock seed)    | `python -m ai_core.demo` |
 
 ### 7. Git workflow (reminder)
 
@@ -117,8 +125,14 @@ higgs-ai-platform/
 ├── run.py                   ← starts backend + desktop UI
 ├── .gitignore
 │
+├── scripts/                  ← data loading and tests (run from project root)
+│   ├── import_donors_book1.py   ← load donors from Book 1 Excel
+│   ├── import_ngos_book2.py     ← load NGOs from Book 2 Excel
+│   ├── run_ai_demo.py           ← build embeddings, show top matches for first donors
+│   └── test_matchmaking_api.py  ← HTTP tests for matchmaking (backend must be up)
+│
 ├── backend/                  ← FastAPI server (do not put DB or AI logic here)
-│   └── main_api.py          ← API routes (login, GET .../donors/{id}/recommendations)
+│   └── main_api.py          ← API routes (login, matchmaking, donors, NGOs)
 │
 ├── frontend/                 ← PySide6 desktop UI
 │   └── main_ui.py
@@ -142,7 +156,7 @@ higgs-ai-platform/
 │   ├── README.md             ← short guide for the AI layer
 │   ├── DOCUMENTATION.md      ← function reference (inputs/outputs)
 │   ├── __init__.py
-│   ├── api.py                ← ensure_embeddings(), get_recommendations_for_donor()
+│   ├── api.py                ← ensure_embeddings(), get_recommendations_for_donor(), get_recommendations_for_donor_profile()
 │   ├── profile.py            ← build_donor_profile_text(), build_ngo_profile_text()
 │   ├── embeddings.py         ← load model, encode text to bytes
 │   ├── matching.py           ← cosine similarity, rank_by_similarity()
@@ -152,14 +166,56 @@ higgs-ai-platform/
 │
 └── data/                     ← created at runtime (not in git)
     ├── dataset.db            ← donors, NGOs, donor_ngo_matches
-    └── accounts.db           ← user accounts
+    ├── accounts.db           ← user accounts
+    ├── imports/              ← uploaded Excel files (from desktop app)
+    └── export_file/          ← matchmaking CSV written here (overwritten each export)
+        └── matchmaking_results.csv
 ```
 
 **Summary**
 
-- **Backend**: only API routes; it calls `database` and `ai_core`, it doesn’t implement DB or AI.
+- **Desktop app**: PySide6 UI; talks to the backend over HTTP. Run with `python run.py`.
+- **Backend**: FastAPI server used by the desktop app (and by scripts). It only routes requests; it calls `database` and `ai_core`, it does not implement DB or AI.
 - **Database**: everything about storing and loading data (donors, NGOs, accounts, Excel, helpers).
 - **ai_core**: everything about embeddings and matching; reads/writes via `database`.
+
+---
+
+## Matchmaking (for the backend / desktop app)
+
+Matchmaking is **single-donor**: the user enters one donor's name and strategy; the backend ranks NGOs in the database by semantic similarity and returns normalized scores (0–100%).
+
+### Data flow
+
+- **Donors** and **NGOs** live in the same database (`data/dataset.db`) in different tables: `donors` and `ngos`. You can load donors from Book 1 and NGOs from Book 2 independently.
+- **Single-donor matchmaking** does **not** store the donor: the request body sends `donor_name` and `donor_strategy`; the backend builds an embedding from that text and compares it to all NGO embeddings in the DB.
+- **Scores**: raw AI scores (e.g. 0.45) are normalized so the best match = 100%; matches too far below the top are dropped. Optional `match_threshold_percent` filters by minimum %.
+
+### Backend endpoints (matchmaking)
+
+| Method / endpoint | Purpose |
+|-------------------|--------|
+| `POST /api/matchmaking/generate` | Body: `{ "donor_name", "donor_strategy", "match_threshold_percent"?: number }`. Returns `{ donor_name, matches: [...], total_matched }`. |
+| `POST /api/matchmaking/export`  | Same body as generate. Writes CSV to **`data/export_file/matchmaking_results.csv`** (overwrites each time), returns JSON: `{ "saved_to", "path_absolute", "filename", "total_matched" }`. |
+| `POST /api/ngos`                 | Add one NGO: body `{ name, strategy?, focus?, legal_form? }`. |
+| `DELETE /api/ngos`               | Delete NGOs: body `{ "ids": [1, 2, 3] }`. |
+| `POST /api/ensure-embeddings`    | Precompute embeddings for all donors and NGOs that don't have one. |
+
+### Where is the CSV file?
+
+The matchmaking export **writes the CSV into the app** so the desktop app can open it without a “save as” dialog:
+
+- **Path**: `data/export_file/matchmaking_results.csv` (relative to project root).
+- **Behaviour**: Each time the user runs matchmaking and exports, this file is **overwritten**. So there is always one latest result file.
+- The export endpoint returns JSON with `saved_to` (relative path) and `path_absolute` (full path) so the desktop app can open or show the file.
+
+### Loading data and testing (quick reference)
+
+1. Load donors: `python scripts/import_donors_book1.py` (put `book1.xlsx` in project root or pass path).
+2. Load NGOs: `python scripts/import_ngos_book2.py` (put `book2.xlsx` in project root or pass path).
+3. Start backend: `uvicorn backend.main_api:app --reload`.
+4. Optionally precompute embeddings: `POST /api/ensure-embeddings` or run `python scripts/run_ai_demo.py` once.
+5. Test matchmaking API: `python scripts/test_matchmaking_api.py` .
 
 ---
 

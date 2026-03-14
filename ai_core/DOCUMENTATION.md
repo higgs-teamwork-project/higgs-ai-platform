@@ -34,7 +34,18 @@ Module: `ai_core.api`
 - **Side effects**:
   - May compute and persist donor/NGO embeddings if they were missing.
   - If `save_matches=True`, inserts/updates rows in `donor_ngo_matches`.
-- **Notes**: Returns an empty list if the donor does not exist.
+- **Notes**: Returns an empty list if the donor does not exist. Results are deduplicated by NGO name.
+
+#### 1.3 `get_recommendations_for_donor_profile(donor_name, donor_strategy, top_k=50) -> List[dict]`
+
+- **Purpose**: Rank NGOs by similarity to an **ad-hoc donor** (name + strategy only). The donor is **not** stored in the database; used for single-donor matchmaking (e.g. user enters donor in the UI).
+- **Inputs**:
+  - `donor_name` (str) – donor name.
+  - `donor_strategy` (str) – donor strategy/focus text.
+  - `top_k` (int, default 50) – maximum number of recommendations.
+- **Output**: List of dicts `{"ngo_id", "ngo", "score"}` sorted by score descending, deduplicated by NGO name. No side effects (no DB writes for the donor).
+- **Side effects**: May compute and persist NGO embeddings if missing. Does not write to `donor_ngo_matches`.
+- **Notes**: The backend uses this for `POST /api/matchmaking/generate`, then normalizes raw scores to 0–100% and filters by threshold.
 
 ---
 
@@ -44,8 +55,8 @@ Module: `ai_core.profile`
 
 #### 2.1 `build_donor_profile_text(row) -> str`
 
-- **Purpose**: Build a single string from a donor row for the embedding model.
-- **Inputs**: `row` – dict-like or sqlite3.Row with keys: name, sectors, regions, description, keywords (missing/None become empty).
+- **Purpose**: Build a single string from a donor row (or dict with name, legal_form, strategy, etc.) for the embedding model.
+- **Inputs**: `row` – dict-like or sqlite3.Row with keys: name, legal_form, strategy, sectors, regions, description, keywords (missing/None become empty).
 - **Output**: One string with non-empty fields joined by spaces.
 - **Side effects**: none.
 
@@ -126,10 +137,17 @@ Module: `ai_core.demo` (run as `python -m ai_core.demo`)
 
 #### 5.1 `main() -> None`
 
-- **Purpose**: Run a full demo: init DB, seed mock data, build embeddings, run recommendations for each donor, print results.
+- **Purpose**: Run a full demo: init DB (no mock seed), build embeddings for existing donors/NGOs, run recommendations for each donor, print results.
 - **Inputs**: none (reads from database, writes embeddings if missing).
 - **Output**: none (prints to stdout).
 - **Side effects**:
-  - Calls `database.initialize_all_databases()` and `database.mock_data.seed_mock_data()`.
+  - Calls `database.initialize_all_databases()` (no mock data).
   - Calls `ai_core.api.ensure_embeddings()`.
-  - For each donor, calls `get_recommendations_for_donor(donor_id, top_k=3, save_matches=False)` and prints donor name, then top 3 NGOs with score and sectors.
+  - For each donor in the DB, calls `get_recommendations_for_donor(donor_id, top_k=3, save_matches=False)` and prints donor name and top 3 NGOs with score and sectors.
+
+### 6. Matchmaking (backend)
+
+Single-donor matchmaking is implemented in the **backend** (`backend/main_api.py`):
+
+- **Normalization**: Raw cosine scores (e.g. 0.45) are converted to 0–100% so the best match = 100%. Matches with raw score below 70% of the top are dropped.
+- **Endpoints**: `POST /api/matchmaking/generate` (JSON with matches and normalized scores), `POST /api/matchmaking/export` (same input, response is CSV attachment). The backend writes the CSV to **`data/export_file/matchmaking_results.csv`** (overwrites each export) and returns the path in JSON so the desktop app can open it.

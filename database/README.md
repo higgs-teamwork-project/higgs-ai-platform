@@ -1,6 +1,6 @@
 ## Database Layer (short guide)
 
-This folder contains the code that talks to the SQLite databases.  
+This folder contains the code that talks to the SQLite databases. Data is used by the **desktop app** (PySide6) via the **backend** (FastAPI); the backend calls these modules.  
 
 ---
 
@@ -31,12 +31,15 @@ This module holds the data used by the AI matching.
 
 - **Useful functions**
   - `initialize_schema()` – creates the tables if they do not exist. Safe to call many times.
-  - `insert_donor(name, sectors, regions, description, keywords, embedding=None)` – adds a donor.
-  - `insert_ngo(name, sectors, regions, description, keywords, embedding=None)` – adds an NGO.
+  - `insert_donor(name, legal_form=None, strategy=None, sectors=None, regions=None, ...)` – adds a donor.
+  - `insert_ngo(name, legal_form=None, strategy=None, focus=None, sectors=None, ...)` – adds an NGO.
   - `list_donors()` – returns all donors.
   - `list_ngos()` – returns all NGOs.
+  - `get_donor(id)`, `get_ngo(id)` – fetch one row by ID.
+  - `delete_ngo(ngo_id)` – delete one NGO (and its matches).
+  - `delete_ngos(ngo_ids)` – delete multiple NGOs by ID.
 
-`sectors`, `regions`, and `keywords` are **lists of strings** (or `None`). The code stores them as text inside the database.
+Donors and NGOs are in the **same database** (`data/dataset.db`), **different tables**. You can add/delete NGOs without affecting donors. `sectors`, `regions`, and `keywords` are stored as text (comma-separated or similar).
 
 **Example (Python):**
 
@@ -93,31 +96,23 @@ else:
 
 ---
 
-### 4. Importing data from Excel (`excel_import.py`)
+### 4. Loading data (Excel and scripts)
 
-Use this module when you receive an Excel file with donor and NGO information.
+**Option A – Dedicated scripts (recommended for HIGGS Book 1 / Book 2):**
 
-It expects an Excel file with:
+- **Donors only (Book 1)**  
+  `python scripts/import_donors_book1.py`  
+  Or: `python scripts/import_donors_book1.py path/to/book1.xlsx`  
+  Expects: column A = Donor (merged), B = Legal form (merged), C = Strategy (one per row). Replaces existing donors.
 
-- Sheet **`Donors`** – columns:
-  - `name`, `sectors`, `regions`, `description`, `keywords`
-- Sheet **`NGOs`** – same columns.
+- **NGOs only (Book 2)**  
+  `python scripts/import_ngos_book2.py`  
+  Or: `python scripts/import_ngos_book2.py path/to/book2.xlsx`  
+  Expects: column A = NGO name, B and C = strategy/focus. Replaces existing NGOs; deduplicates by name.
 
-- **Main function**
-  - `import_dataset_from_excel(excel_path)`
-    - Sets up the dataset tables.
-    - Reads data from the Excel file.
-    - Inserts donors and NGOs into the database.
+**Option B – Combined Excel (`excel_import.py`):**
 
-`sectors`, `regions`, `keywords` can be comma‑separated strings (for example `"Education, Youth"`).
-
-**Example (Python):**
-
-```python
-from database import excel_import
-
-excel_import.import_dataset_from_excel("higgs_dataset.xlsx")
-```
+- `import_dataset_from_excel(excel_path)` – for a single Excel with both donors and NGOs in HIGGS combined format. See `database/DOCUMENTATION.md` for column mapping.
 
 ---
 
@@ -130,7 +125,7 @@ This module adds a few sample donors and NGOs so the system works even if you do
     - If the database is empty, it inserts a few example records.
     - If there is already data, it does nothing.
 
-The backend already calls this function on startup.
+The backend does **not** seed mock data on startup; use the import scripts or the API to load data.
 
 ---
 

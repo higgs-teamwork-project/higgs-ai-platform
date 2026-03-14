@@ -30,6 +30,8 @@ Signature:
 ```python
 insert_donor(
     name: str,
+    legal_form: Optional[str] = None,
+    strategy: Optional[str] = None,
     sectors: Optional[Iterable[str]] = None,
     regions: Optional[Iterable[str]] = None,
     description: Optional[str] = None,
@@ -39,14 +41,8 @@ insert_donor(
 ```
 
 - **Purpose**: Insert a donor record.
-- **Inputs**:
-  - `name` – donor name (required).
-  - `sectors` – list of sector strings, e.g. `["Education", "Youth"]` (optional).
-  - `regions` – list of region strings, e.g. `["Greece"]` (optional).
-  - `description` – free‑text description (optional).
-  - `keywords` – list of keyword strings, e.g. `["climate", "biodiversity"]` (optional).
-  - `embedding` – raw bytes for the embedding vector (optional, can be `None` for now).
-- **Output**: integer ID of the newly created donor (primary key).
+- **Inputs**: `name` (required), `legal_form`, `strategy`, `sectors`, `regions`, `description`, `keywords`, `embedding` (all optional).
+- **Output**: integer ID of the newly created donor.
 - **Side effects**: Writes one row to the `donors` table.
 
 #### 1.4 `insert_ngo(...) -> int`
@@ -56,6 +52,9 @@ Signature:
 ```python
 insert_ngo(
     name: str,
+    legal_form: Optional[str] = None,
+    strategy: Optional[str] = None,
+    focus: Optional[str] = None,
     sectors: Optional[Iterable[str]] = None,
     regions: Optional[Iterable[str]] = None,
     description: Optional[str] = None,
@@ -65,7 +64,7 @@ insert_ngo(
 ```
 
 - **Purpose**: Insert an NGO record.
-- **Inputs**: same meaning as `insert_donor`, but stored in the `ngos` table.
+- **Inputs**: `name` (required), `legal_form`, `strategy`, `focus`, and the rest optional.
 - **Output**: integer ID of the new NGO.
 - **Side effects**: Writes one row to the `ngos` table.
 
@@ -132,6 +131,28 @@ insert_ngo(
 - **Side effects**:
   - Inserts a new row if no match exists for that `(donor_id, ngo_id)` pair.
   - If a row already exists, updates the `similarity` (and `notes` when provided).
+
+#### 1.12 `delete_ngo(ngo_id: int) -> bool`
+
+- **Purpose**: Delete one NGO by ID and any donor_ngo_matches referencing it.
+- **Inputs**: `ngo_id` – ID of the NGO to delete.
+- **Output**: `True` if a row was deleted, else `False`.
+- **Side effects**: Deletes from `donor_ngo_matches` then from `ngos`.
+
+#### 1.13 `delete_ngos(ngo_ids: Iterable[int]) -> int`
+
+- **Purpose**: Delete multiple NGOs by ID (and their matches).
+- **Inputs**: `ngo_ids` – iterable of NGO IDs.
+- **Output**: number of NGOs deleted.
+- **Side effects**: Deletes matching rows from `donor_ngo_matches` and `ngos`.
+
+---
+
+### 1b. Matchmaking data and loading scripts
+
+- **Same database, two tables**: Donors and NGOs live in `data/dataset.db` in tables `donors` and `ngos`. Users can add/delete NGOs (e.g. via `POST /api/ngos`, `DELETE /api/ngos`) without touching donors.
+- **Loading donors (Book 1)**: Run `python scripts/import_donors_book1.py` (or pass path to book1.xlsx). Replaces all donors; handles merged cells for name/legal form and one strategy per row.
+- **Loading NGOs (Book 2)**: Run `python scripts/import_ngos_book2.py` (or pass path to book2.xlsx). Replaces all NGOs; deduplicates by name (one row per NGO name).
 
 ---
 

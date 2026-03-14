@@ -11,7 +11,7 @@ DB_PATH = DATA_DIR / "accounts.db"
 
 def get_connection() -> sqlite3.Connection:
     """
-    Connection to the accounts database (usernames + password hashes).
+    Connection to the accounts database (emails + password hashes).
     """
     DATA_DIR.mkdir(parents=True, exist_ok=True)
     conn = sqlite3.connect(DB_PATH)
@@ -22,6 +22,15 @@ def get_connection() -> sqlite3.Connection:
 def initialize_schema() -> None:
     """
     Create the accounts table if it does not exist.
+
+    Fields (from HIGGS PDF):
+    - email (unique)
+    - password_hash, salt
+    - display_name
+    - profile_picture_url
+    - approved (bool)
+    - verified (bool)
+    - is_admin (bool)
     """
     conn = get_connection()
     try:
@@ -29,12 +38,16 @@ def initialize_schema() -> None:
         cur.execute(
             """
             CREATE TABLE IF NOT EXISTS accounts (
-                id              INTEGER PRIMARY KEY AUTOINCREMENT,
-                username        TEXT NOT NULL UNIQUE,
-                password_hash   TEXT NOT NULL,
-                salt            TEXT NOT NULL,
-                role            TEXT,
-                created_at      TEXT DEFAULT CURRENT_TIMESTAMP
+                id                   INTEGER PRIMARY KEY AUTOINCREMENT,
+                email                TEXT NOT NULL UNIQUE,
+                password_hash        TEXT NOT NULL,
+                salt                 TEXT NOT NULL,
+                display_name         TEXT,
+                profile_picture_url  TEXT,
+                approved             INTEGER NOT NULL DEFAULT 0,
+                verified             INTEGER NOT NULL DEFAULT 0,
+                is_admin             INTEGER NOT NULL DEFAULT 0,
+                created_at           TEXT DEFAULT CURRENT_TIMESTAMP
             )
             """
         )
@@ -43,7 +56,16 @@ def initialize_schema() -> None:
         conn.close()
 
 
-def create_account(username: str, password: str, role: str | None = None) -> int:
+def create_account(
+    email: str,
+    password: str,
+    *,
+    display_name: str | None = None,
+    profile_picture_url: str | None = None,
+    approved: bool = False,
+    verified: bool = False,
+    is_admin: bool = False,
+) -> int:
     """
     Create a new account with a salted SHA-256 hash of the password.
     """
@@ -55,10 +77,28 @@ def create_account(username: str, password: str, role: str | None = None) -> int
         cur = conn.cursor()
         cur.execute(
             """
-            INSERT INTO accounts (username, password_hash, salt, role)
-            VALUES (?, ?, ?, ?)
+            INSERT INTO accounts (
+                email,
+                password_hash,
+                salt,
+                display_name,
+                profile_picture_url,
+                approved,
+                verified,
+                is_admin
+            )
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?)
             """,
-            (username, password_hash, salt, role),
+            (
+                email,
+                password_hash,
+                salt,
+                display_name,
+                profile_picture_url,
+                int(approved),
+                int(verified),
+                int(is_admin),
+            ),
         )
         conn.commit()
         return int(cur.lastrowid)
@@ -66,19 +106,21 @@ def create_account(username: str, password: str, role: str | None = None) -> int
         conn.close()
 
 
-def verify_credentials(username: str, password: str) -> bool:
+def verify_credentials(email: str, password: str) -> bool:
     """
-    Check whether the provided username/password combination is valid.
+    Check whether the provided email/password combination is valid.
     """
     conn = get_connection()
     try:
         cur = conn.cursor()
         cur.execute(
-            "SELECT password_hash, salt FROM accounts WHERE username = ?",
-            (username,),
+            "SELECT password_hash, salt, approved, verified FROM accounts WHERE email = ?",
+            (email,),
         )
         row = cur.fetchone()
         if row is None:
+            return False
+        if not (row["approved"] and row["verified"]):
             return False
         expected_hash = row["password_hash"]
         salt = row["salt"]
