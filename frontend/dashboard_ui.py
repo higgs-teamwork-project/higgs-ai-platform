@@ -6,7 +6,7 @@ from PySide6.QtCore import Qt
 
 # ---- THE MAGIC LINK: Import your sub-pages here! ----
 from prompt_ui import HIGGSApp
-from admin_settings_ui import AdminSettingsWindow
+#from admin_settings_ui import AdminSettingsWindow
 
 class DashboardWindow(QMainWindow):
     def __init__(self, parent_window=None):
@@ -87,7 +87,7 @@ class DashboardWindow(QMainWindow):
             self.prompt_window = HIGGSApp()
             self.prompt_window.dashboard_window = self
             
-        self.admin_window = AdminSettingsWindow(parent_window=self)
+        # self.admin_window = AdminSettingsWindow(parent_window=self)
 
 
     def open_prompt_page(self):
