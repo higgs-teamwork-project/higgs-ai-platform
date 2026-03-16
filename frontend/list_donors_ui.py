@@ -1,5 +1,5 @@
 from PySide6.QtCore import (Qt, QAbstractTableModel)
-from PySide6.QtWidgets import (QMainWindow, QApplication, QListView, QVBoxLayout, QWidget, QMessageBox)
+from PySide6.QtWidgets import (QMainWindow, QApplication, QTableView, QVBoxLayout, QWidget, QMessageBox)
 import sys
 import requests
 
@@ -15,15 +15,26 @@ Table view
 """
 class DonorsTableModel(QAbstractTableModel):
     def __init__(self):
-        super.__init__()
-        self._data = self.populateDonorList()
+        super().__init__()
+        #self._data = self.populate_donor_list()
+        self._data = self.test_populate()
 
-    def populateDonorList(self):
+    def test_populate(self):
+        data = [
+            ["1", "ABC", "Stuff1"],
+            ["2", "CDE", "Stuff2"],
+            ["3", "EFG", "Stuff3"],
+            ["4", "EFG", "Stuff4"]
+        ]
+        return data
+
+    def populate_donor_list(self):
         try:
             response = requests.get("http://127.0.0.1:8000/api/donors") 
             donors = response.json()
             ## get just the ids + names + strategies
             donor_table_rows = [[d["id"], d["name"], d["strategy"]] for d in donors]
+            print(donor_table_rows)
             return donor_table_rows      
 
         except:
@@ -39,36 +50,38 @@ class DonorsTableModel(QAbstractTableModel):
     def data(self, index, role=Qt.ItemDataRole.DisplayRole):
         if role == Qt.ItemDataRole.DisplayRole:
             return str(self._data[index.row()][index.column()]) # data displayed is the string version of the cell
+        return None
+    
+    def headerData(self, section, orientation, role):
+        if role == Qt.ItemDataRole.DisplayRole and orientation ==  Qt.Orientation.Horizontal:
+            headers = ["Id", "Donor Name", "Donor Strategy"]
+            return headers[section]
+        return None
 
 
 class ListDonorsWindow(QMainWindow):
     def __init__(self):
         super().__init__()
         self.setWindowTitle("HIGGS AI Platform - List Donors")
+        self.resize(800, 500)
 
         centralWidget = QWidget()  
         layout = QVBoxLayout()
 
-        self.donor_list_view = QListView()
-        self.donor_list_model = QStringListModel()
+        self.donor_list_view = QTableView()
+        self.donor_list_model = DonorsTableModel()
+        self.donor_list_view.setModel(self.donor_list_model)
 
         layout.addWidget(self.donor_list_view)
         
-        centralWidget.setLayout(self.layout)
+        centralWidget.setLayout(layout)
         self.setCentralWidget(centralWidget)        
-    
-
-    def populateDonorList(self):
-        try:
-            response = requests.get("http://127.0.0.1:8000/api/donors") 
-            donors = response.json()
-            ## get just the ids + names + strategies
-            donor_table_rows = [[d["id"], d["name"], d["strategy"]] for d in donors]
 
 
-            self.donor_list_model.setStringList        
+if __name__ == "__main__":
+    app = QApplication(sys.argv)
+    window = ListDonorsWindow()
+    window.show()
+    sys.exit(app.exec())
 
 
-
-        except:
-            QMessageBox.critical(self, "Server Error", "Could not retrieve donors.")

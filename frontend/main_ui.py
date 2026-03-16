@@ -6,7 +6,7 @@ from PySide6.QtWidgets import (QApplication, QMainWindow, QWidget, QVBoxLayout,
 from PySide6.QtCore import Qt
 from output_ui import MatchmakingResultWindow
 from prompt_ui import HIGGSApp
-
+from list_donors_ui import ListDonorsWindow
 
 # FOR TESTING PURPOSES
 from schedule_ui import ScheduleWindow
@@ -89,7 +89,7 @@ if __name__ == "__main__":
     app = QApplication(sys.argv)
     ##window = LoginWindow()
     ## FOR TESTING PURPOSES
-    window = MatchmakingResultWindow()
+    window = ListDonorsWindow()
     
     window.show()
     sys.exit(app.exec())
