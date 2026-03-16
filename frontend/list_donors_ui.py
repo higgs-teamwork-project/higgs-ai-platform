@@ -1,5 +1,11 @@
 from PySide6.QtCore import (Qt, QAbstractTableModel)
-from PySide6.QtWidgets import (QMainWindow, QApplication, QTableView, QVBoxLayout, QWidget, QMessageBox)
+from PySide6.QtWidgets import (QMainWindow, 
+                               QApplication, 
+                               QTableView, 
+                               QVBoxLayout, 
+                               QWidget, 
+                               QHeaderView,
+                               QMessageBox)
 import sys
 import requests
 
@@ -16,8 +22,8 @@ Table view
 class DonorsTableModel(QAbstractTableModel):
     def __init__(self):
         super().__init__()
-        #self._data = self.populate_donor_list()
-        self._data = self.test_populate()
+        self._data = self.populate_donor_list()
+        #self._data = self.test_populate()
 
     def test_populate(self):
         data = [
@@ -68,12 +74,17 @@ class ListDonorsWindow(QMainWindow):
         centralWidget = QWidget()  
         layout = QVBoxLayout()
 
-        self.donor_list_view = QTableView()
-        self.donor_list_model = DonorsTableModel()
-        self.donor_list_view.setModel(self.donor_list_model)
+        ## set up table
+        self.donor_table_view = QTableView()
+        self.donor_table_view.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeMode.ResizeToContents)
+        self.donor_table_view.setWordWrap(True)
+        self.donor_table_view.verticalHeader().setSectionResizeMode(QHeaderView.ResizeMode.ResizeToContents)
 
-        layout.addWidget(self.donor_list_view)
-        
+        ## get the data and add to table
+        self.donor_table_model = DonorsTableModel()
+        self.donor_table_view.setModel(self.donor_table_model)
+
+        layout.addWidget(self.donor_table_view)
         centralWidget.setLayout(layout)
         self.setCentralWidget(centralWidget)        
 
