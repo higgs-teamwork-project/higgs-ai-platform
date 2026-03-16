@@ -1,10 +1,10 @@
 import sys
 import csv
-from PyQt6.QtWidgets import (QApplication, QMainWindow, QWidget, QVBoxLayout, 
+from PySide6.QtWidgets import (QApplication, QMainWindow, QWidget, QVBoxLayout, 
                              QHBoxLayout, QLabel, QTableWidget, QTableWidgetItem, 
                              QPushButton, QHeaderView, QFileDialog, QMessageBox)
-from PyQt6.QtCore import Qt
-from PyQt6.QtGui import QFont
+from PySide6.QtCore import Qt
+from PySide6.QtGui import QFont
 
 class MatchmakingResultWindow(QMainWindow):
     def __init__(self, donor_name="Jane Doe", match_count=12):

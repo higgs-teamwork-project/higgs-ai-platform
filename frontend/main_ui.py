@@ -4,7 +4,12 @@ import requests
 from PySide6.QtWidgets import (QApplication, QMainWindow, QWidget, QVBoxLayout, 
                                QLabel, QLineEdit, QPushButton, QMessageBox)
 from PySide6.QtCore import Qt
+from output_ui import MatchmakingResultWindow
 from prompt_ui import HIGGSApp
+
+
+# FOR TESTING PURPOSES
+from schedule_ui import ScheduleWindow
 
 # ---- THE MAGIC LINK: Import your new file here! ----
 from registration_ui import RegistrationWindow 
@@ -82,6 +87,9 @@ class LoginWindow(QMainWindow):
 
 if __name__ == "__main__":
     app = QApplication(sys.argv)
-    window = LoginWindow()
+    ##window = LoginWindow()
+    ## FOR TESTING PURPOSES
+    window = MatchmakingResultWindow()
+    
     window.show()
     sys.exit(app.exec())

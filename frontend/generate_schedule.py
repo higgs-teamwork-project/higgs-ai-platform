@@ -24,6 +24,13 @@ from pydantic import BaseModel
 
 # schedule is (ngo, timeslot) -> donor
 
+# slots is tuples[ngo, datetime slot]
+
+class donor_schedule:
+    def __init__(self, donor: str):
+        self.donor = donor
+        self.slots = []
+
 class donor_matches(BaseModel):
     donor: str
     matches: list[str]
@@ -38,10 +45,12 @@ def generate_schedule(matchmaking: list[donor_matches], day: datetime):
 
     schedule = {}
     no_matches = []
+    flipped_schedule = {}
 
     # runtime = number of matches
     for donor in matchmaking:
         current_slot = START_DAY1 - timedelta(minutes=13) ## so 3pm included. this represents the start of a slot.
+        flipped_schedule[donor.donor] = donor_schedule(donor=donor.donor)
         for match in donor.matches:
             found = False
             while (not found):
@@ -56,15 +65,10 @@ def generate_schedule(matchmaking: list[donor_matches], day: datetime):
                 
                 if (match, current_slot) not in schedule: # if the ngo is not occupied at this time
                     schedule[(match, current_slot)] = donor.donor # add appointment
+                    flip_schedule[donor.donor].slots.append((match, current_slot))
                     found = True
     
-    return (schedule, no_matches)
-
-# slots is tuples[ngo, datetime slot]
-class donor_schedule:
-    def __init__(self, donor: str):
-        self.donor = donor
-        self.slots = []
+    return (schedule, flipped_schedule, no_matches)
 
 def flip_schedule(schedule: dict[tuple[str, datetime], str]):
     # key: donor as a string, value: donor_schedule
@@ -77,4 +81,4 @@ def flip_schedule(schedule: dict[tuple[str, datetime], str]):
             # add the current slot
             new_schedule[schedule[slot]].slots.append(slot)
 
-    return new_schedule
+    return new_schedule 
