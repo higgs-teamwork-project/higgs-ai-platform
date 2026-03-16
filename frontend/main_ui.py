@@ -90,8 +90,6 @@ if __name__ == "__main__":
     app = QApplication(sys.argv)
     ##window = LoginWindow()
     ## FOR TESTING PURPOSES
-    #window = ListDonorsWindow()
-
 
     style = loadstylesheet()
     if style:
@@ -100,7 +98,7 @@ if __name__ == "__main__":
         print("No stylesheet")
 
 
-    window = DashboardWindow()
+    window = ListDonorsWindow()
 
 
     window.show()

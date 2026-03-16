@@ -7,6 +7,16 @@ QPushButton[styling="outline"]{
     background-color: #FFFFFF;      
 }
 
+QPushButton[styling="filled"]{
+    margin: 5px; 
+    color: #FFFFFF; 
+    border-radius: 3px; 
+    background-color: #C12250;   
+    padding: 10px 10px;
+    font-size: 16px;   
+    font-weight: bold;
+}
+
 QLabel[styling="titleLabel"]{
     font-size: 28px; 
     font-weight: bold; 

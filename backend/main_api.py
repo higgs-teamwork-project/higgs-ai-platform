@@ -194,6 +194,7 @@ async def matchmaking_generate(body: MatchmakingGenerateBody):
     Returns NGOs ranked by similarity, with normalized scores (0–100%) and filtered
     so that only matches close enough to the top score are included.
     """
+    print("here")
     if not (body.donor_name or "").strip():
         raise HTTPException(status_code=400, detail="Donor name is required")
     if not (body.donor_strategy or "").strip():
