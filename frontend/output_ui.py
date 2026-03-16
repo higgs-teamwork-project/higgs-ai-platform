@@ -1,15 +1,4 @@
-
-
-
-
-
-
-
-
-
-
-
-    import sys
+import sys
 import csv
 from PyQt6.QtWidgets import (QApplication, QMainWindow, QWidget, QVBoxLayout, 
                              QHBoxLayout, QLabel, QTableWidget, QTableWidgetItem, 
