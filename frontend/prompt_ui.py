@@ -214,21 +214,60 @@ class ManageNGODialog(QDialog):
 
 
 class HIGGSApp(QMainWindow):
-    def __init__(self):
+    def __init__(self,dashboard_window=None):
         super().__init__()
+        self.dashboard_window = dashboard_window
+
         # Figma Desktop Frame Size
         self.setWindowTitle("HIGGS AI Matchmaking")
         self.resize(1400, 1024)
         self.setStyleSheet(f"QMainWindow {{ background-color: {COLOR_GREY}; font-family: '{FONT_FAMILY}'; }}")
 
+        # add a central widget and layout to hold the pages
+        central_widget = QWidget()
+        self.setCentralWidget(central_widget)
+
+        main_layout = QVBoxLayout(central_widget)
+        main_layout.setContentsMargins(0, 0, 0, 0)
+        main_layout.setSpacing(0)
+
+        # navigation layout (top right)
+        nav_layout = QHBoxLayout()
+        nav_layout.setContentsMargins(30, 20, 40, 10)
+        nav_layout.addStretch() 
+
+        self.btn_back_dashboard = QPushButton("Back to Dashboard")
+        self.btn_back_dashboard.setCursor(Qt.PointingHandCursor)
+        self.btn_back_dashboard.setStyleSheet(f"""
+            QPushButton {{
+                background-color: transparent; 
+                color: {COLOR_RED}; 
+                font-size: 14px; 
+                font-weight: bold;
+                border: 2px solid {COLOR_RED};
+                border-radius: 8px;
+                padding: 8px 20px;
+            }}
+            QPushButton:hover {{ background-color: {COLOR_RED}; color: {COLOR_WHITE}; }}
+        """)
+        self.btn_back_dashboard.clicked.connect(self.return_to_dashboard)
+        nav_layout.addWidget(self.btn_back_dashboard)
+        main_layout.addLayout(nav_layout)
+
         self.stack = QStackedWidget()
-        self.setCentralWidget(self.stack)
+        main_layout.addWidget(self.stack)
 
         self.prompt_page = self.create_prompt_page()
         self.result_page = self.create_placeholder_result_page() # Dummy für den Erfolg
 
         self.stack.addWidget(self.prompt_page)
         self.stack.addWidget(self.result_page)
+
+    def return_to_dashboard(self):
+        self.hide()
+        if hasattr(self, 'dashboard_window') and self.dashboard_window:
+            self.dashboard_window.show()
+
 
     def create_prompt_page(self):
         page = QWidget()
