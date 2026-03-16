@@ -4,6 +4,7 @@ import requests
 from PySide6.QtWidgets import (QApplication, QMainWindow, QWidget, QVBoxLayout, 
                                QLabel, QLineEdit, QPushButton, QMessageBox)
 from PySide6.QtCore import Qt
+from load_style_ui import loadstylesheet
 from output_ui import MatchmakingResultWindow
 from prompt_ui import HIGGSApp
 from list_donors_ui import ListDonorsWindow
@@ -89,7 +90,18 @@ if __name__ == "__main__":
     app = QApplication(sys.argv)
     ##window = LoginWindow()
     ## FOR TESTING PURPOSES
-    window = ListDonorsWindow()
-    
+    #window = ListDonorsWindow()
+
+
+    style = loadstylesheet()
+    if style:
+        app.setStyleSheet(style)
+    else:
+        print("No stylesheet")
+
+
+    window = DashboardWindow()
+
+
     window.show()
     sys.exit(app.exec())

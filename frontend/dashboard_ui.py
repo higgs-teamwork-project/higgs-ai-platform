@@ -3,6 +3,7 @@ import sys
 from PySide6.QtWidgets import (QApplication, QMainWindow, QWidget, QVBoxLayout, 
                                QHBoxLayout, QPushButton, QLabel, QMessageBox)
 from PySide6.QtCore import Qt
+from load_style_ui import loadstylesheet
 
 # ---- THE MAGIC LINK: Import your sub-pages here! ----
 from prompt_ui import HIGGSApp
@@ -16,64 +17,66 @@ class DashboardWindow(QMainWindow):
         self.resize(800, 500)
 
         central_widget = QWidget()
-        central_widget.setStyleSheet("background-color: #F2F2F2; color: #333;")
-        
+
         main_layout = QVBoxLayout()
         main_layout.setContentsMargins(0, 0, 0, 0) 
         main_layout.setSpacing(20)
 
         # Navigation Bar
+        navbar_content = QWidget()
+        navbar_content.setProperty("styling", "mainnavbar")
         nav_layout = QHBoxLayout()
-        nav_layout.setContentsMargins(0, 0, 10, 0) 
+        nav_layout.setContentsMargins(5, 5, 10, 0) 
         nav_layout.addStretch()
+        navbar_content.setLayout(nav_layout)
 
         self.nav_auth_btn = QPushButton("Logout")
-        self.nav_auth_btn.setStyleSheet("padding: 5px 15px; margin: 5px; color: #C12250; border: 1px solid #C12250; border-radius: 3px; background-color: transparent;")
+        self.nav_auth_btn.setProperty("styling", "outline")
         self.nav_auth_btn.clicked.connect(self.logout)
         nav_layout.addWidget(self.nav_auth_btn)
 
         self.nav_settings_btn = QPushButton("Settings")
-        self.nav_settings_btn.setStyleSheet("padding: 5px 15px; margin: 5px; color: #C12250; border: 1px solid #C12250; border-radius: 3px; background-color: transparent;")
+        self.nav_settings_btn.setProperty("styling", "outline")
         self.nav_settings_btn.clicked.connect(self.open_admin_dashboard)
         nav_layout.addWidget(self.nav_settings_btn)
 
-        main_layout.addLayout(nav_layout)
+        main_layout.addWidget(navbar_content)
         main_layout.addStretch()
 
-       
+
         # Page Title
         self.title_label = QLabel("Donors Speed Dating Event")
-        self.title_label.setStyleSheet("font-size: 28px; font-weight: bold; color: #C12250; margin-bottom: 20px;")
+        self.title_label.setProperty("styling", "titleLabel")
         self.title_label.setAlignment(Qt.AlignCenter)
         main_layout.addWidget(self.title_label)
         main_layout.addStretch()
 
         # Tiles (Match, Schedule, Admin)
+        tiles_content =  QWidget()
         tiles_layout = QHBoxLayout()
         tiles_layout.setSpacing(30)
         tiles_layout.setContentsMargins(50, 0, 50, 0) 
-
-        tile_base_style = "background-color: white; color: black; font-size: 22px; font-weight: bold; border: none; border-radius: 10px; min-width: 180px; min-height: 180px;"
+        tiles_content.setLayout(tiles_layout)
 
         tiles_layout.addStretch()
 
         self.tile_match_btn = QPushButton("Match")
-        self.tile_match_btn.setStyleSheet(tile_base_style)
+        self.tile_match_btn.setProperty("styling", "tileButton")
         self.tile_match_btn.clicked.connect(self.open_prompt_page)
         tiles_layout.addWidget(self.tile_match_btn)
 
         self.tile_schedule_btn = QPushButton("Schedule")
-        self.tile_schedule_btn.setStyleSheet(tile_base_style)
+        self.tile_schedule_btn.setProperty("styling", "tileButton")
         self.tile_schedule_btn.clicked.connect(self.open_profile_page)
         tiles_layout.addWidget(self.tile_schedule_btn)
 
         self.tile_admin_btn = QPushButton("Admin")
-        self.tile_admin_btn.setStyleSheet(tile_base_style)
+        self.tile_admin_btn.setProperty("styling", "tileButton")
         self.tile_admin_btn.clicked.connect(self.open_admin_dashboard)
         tiles_layout.addWidget(self.tile_admin_btn)
 
         tiles_layout.addStretch()
-        main_layout.addLayout(tiles_layout)
+        main_layout.addWidget(tiles_content)
         
         main_layout.addStretch()
         main_layout.addStretch()
@@ -114,6 +117,13 @@ class DashboardWindow(QMainWindow):
 
 if __name__ == "__main__":
     app = QApplication(sys.argv)
+    
+    style = loadstylesheet()
+    if style:
+        app.setStyleSheet(style)
+    else:
+        print("No stylesheet")
+        
     window = DashboardWindow() 
     window.show()
     sys.exit(app.exec())

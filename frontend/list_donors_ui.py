@@ -5,7 +5,8 @@ from PySide6.QtWidgets import (QMainWindow,
                                QVBoxLayout, 
                                QWidget, 
                                QHeaderView,
-                               QMessageBox)
+                               QMessageBox,
+                               QHBoxLayout)
 import sys
 import requests
 
@@ -73,6 +74,10 @@ class ListDonorsWindow(QMainWindow):
 
         centralWidget = QWidget()  
         layout = QVBoxLayout()
+
+        # set up navigation bar
+        #self.nav = QH
+
 
         ## set up table
         self.donor_table_view = QTableView()
