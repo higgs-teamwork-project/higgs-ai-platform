@@ -140,6 +140,11 @@ async def get_all_ngos():
     return [_row_to_jsonable(n) for n in ngos]
 
 
+@app.get("/api/getmatches/{donor_id}")
+async def get_donor_matches(donor_id: int):
+    matches = dataset_db.list_matches_for_donor(donor_id=donor_id)
+    return [_row_to_jsonable(m) for m in matches]
+
 # ---------- Add / delete NGOs (single donor matchmaking; NGOs managed separately) ----------
 # Donors and NGOs live in the same database (dataset.db) but in different tables.
 # Users can add/delete NGOs without affecting donors.
@@ -194,7 +199,6 @@ async def matchmaking_generate(body: MatchmakingGenerateBody):
     Returns NGOs ranked by similarity, with normalized scores (0–100%) and filtered
     so that only matches close enough to the top score are included.
     """
-    print("here")
     if not (body.donor_name or "").strip():
         raise HTTPException(status_code=400, detail="Donor name is required")
     if not (body.donor_strategy or "").strip():

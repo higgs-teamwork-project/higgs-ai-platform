@@ -296,6 +296,24 @@ def save_match(
     finally:
         conn.close()
 
+def list_matches_for_donor(donor_id: int):
+    """
+    Retrieve all matches for specific donor. 
+    """
+    conn = get_connection()
+    try:
+        cur = conn.cursor()
+        cur.execute(
+            f"""
+            SELECT donor_id, ngo_id, similarity, created_at
+            FROM donor_ngo_matches 
+            WHERE donor_id = {donor_id} 
+            ORDER BY id 
+            """
+        )
+        return cur.fetchall()
+    finally:
+        conn.close()
 
 def _join(values: Optional[Iterable[str]]) -> Optional[str]:
     if values is None:
