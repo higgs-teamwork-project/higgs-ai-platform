@@ -70,6 +70,37 @@ class DonorsTableModel(QAbstractTableModel):
         return None
 
 
+class DonorsTable(QWidget):
+    def __init__(self):
+        super().__init__()
+        
+        """
+        Outer widget for spacing, styling etc
+        """
+        table_layout = QVBoxLayout(self)
+        
+        # --- set up table ---
+        table_layout = QVBoxLayout(self)
+        table_layout.setContentsMargins(10, 10, 10, 10)
+
+        self.donor_table_view = QTableView()
+        self.donor_table_view.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeMode.ResizeToContents)
+        self.donor_table_view.setWordWrap(True)
+        self.donor_table_view.verticalHeader().setSectionResizeMode(QHeaderView.ResizeMode.ResizeToContents)
+
+        ## select rows
+        self.donor_table_view.setSelectionBehavior(QAbstractItemView.SelectionBehavior.SelectRows)
+        self.donor_table_view.setSelectionMode(QAbstractItemView.SelectionMode.SingleSelection)
+
+        ## get the data and add to table
+        self.donor_table_model = DonorsTableModel()
+        self.donor_table_view.setModel(self.donor_table_model)
+
+
+
+        # --- layout ---
+        table_layout.addWidget(self.donors_table_view)
+
 class ListDonorsWindow(QMainWindow):
     def __init__(self):
         super().__init__()
@@ -133,17 +164,21 @@ class ListDonorsWindow(QMainWindow):
             row_index = self.donor_table_view.selectionModel().selectedRows()[0].row()
             data = self.donor_table_model._data[row_index]
             print(data)
-
-            payload = {
-                "donor_name": data[1],
-                "donor_strategy": data[2]
-            }
-
             try: 
-                response = requests.post("http://127.0.0.1:8000/api/matchmaking/generate", json=payload) 
-                # get json as dictionary 
+
+                # response = requests.post("http://127.0.0.1:8000/api/matchmaking/generate", json=payload) 
+                # # get json as dictionary 
+                # data = response.json()
+                # print(data["matches"])
+
+                response = requests.get(f"http://127.0.0.1:8000/api/donors/{data[0]}/recommendations?top_k=10&save_matches=False") # FIX: CHANGE TO TRUE LTR 
                 data = response.json()
-                print(data["matches"])
+                print(data["recommendations"])
+
+                ## parse recommendation data
+                parse_data = [[m["ngo_id"], m["ngo"]["name"], m["ngo"]["strategy"], m["score"]] for m in data["recommendations"]]
+                print(parse_data)
+
             except Exception as e:
                 print(f"Error in generating matches: {e}")
                 return

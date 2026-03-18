@@ -149,7 +149,6 @@ async def get_donor_matches(donor_id: int):
 # Donors and NGOs live in the same database (dataset.db) but in different tables.
 # Users can add/delete NGOs without affecting donors.
 
-
 class AddNGOBody(BaseModel):
     name: str
     strategy: Optional[str] = None

@@ -308,7 +308,7 @@ def list_matches_for_donor(donor_id: int):
             SELECT donor_id, ngo_id, similarity, created_at
             FROM donor_ngo_matches 
             WHERE donor_id = {donor_id} 
-            ORDER BY id 
+            ORDER BY similarity 
             """
         )
         return cur.fetchall()
