@@ -2,12 +2,14 @@ from pathlib import Path
 from typing import Optional
 from fastapi import FastAPI, HTTPException, UploadFile, File
 from pydantic import BaseModel
+from datetime import datetime
 
 import database
 import ai_core.api as ai_api
 
 import database.accounts_db as accounts_db
 import database.dataset_db as dataset_db
+import database.schedule_db as schedule_db
 
 app = FastAPI()
 
@@ -296,3 +298,40 @@ async def import_excel(file: UploadFile = File(...)):
 
     summary = database.excel_import.import_dataset_from_excel(save_path)
     return {"file": file.filename, "summary": summary}
+
+
+""""
+API for scheduling.
+"""
+
+class MeetingDate(BaseModel):
+    donor_id: int
+    ngo_id: int
+    timestamp: datetime
+
+@app.post("/api/schedule/add")
+async def add_meeting(body: MeetingDate):
+    try:
+        new_id = schedule_db.insert_meeting(
+                    body.donor_id,
+                    body.ngo_id,
+                    body.timestamp
+                )
+        return {"status": "success", "message": f"Meeting created with ID {new_id}"}
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    
+@app.get("/api/schedule/donor/{donor_id}/meetings")
+async def get_donor_meetings(donor_id: int):
+    meetings = schedule_db.get_donor_meetings(donor_id=donor_id)
+    return [_row_to_jsonable(m) for m in meetings]
+
+@app.get("/api/schedule/ngo/{ngo_id}/meetings")
+async def get_ngo_meetings(ngo_id: int):
+    meetings = schedule_db.get_ngo_meetings(ngo_id=ngo_id)
+    return [_row_to_jsonable(m) for m in meetings]
+
+@app.get("/api/schedule/meeting/{donor_id}/{ngo_id}")
+async def get_meeting(donor_id: int, ngo_id: int):
+    meeting = schedule_db.get_donor_ngo_meeting(donor_id=donor_id, ngo_id=ngo_id)
+    return meeting

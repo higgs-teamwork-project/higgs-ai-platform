@@ -49,7 +49,7 @@ def insert_meeting(
     donor_id: int,
     ngo_id: int,
     timestamp: datetime
-) -> None:
+) -> int:
     """
     Insert or update meeting time for specific ngo and specfic donor
     """
@@ -70,7 +70,8 @@ def insert_meeting(
                 timestamp,
             ),
         )
-
+        conn.commit()
+        return int(cur.lastrowid)
     finally:
         conn.close()
 
