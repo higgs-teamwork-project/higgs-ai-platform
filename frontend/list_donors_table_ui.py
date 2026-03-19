@@ -77,143 +77,85 @@ class DonorsTable(QWidget):
         """
         Outer widget for spacing, styling etc
         """
-        table_layout = QVBoxLayout(self)
+        self.table_layout = QVBoxLayout()
         
         # --- set up table ---
-        table_layout = QVBoxLayout(self)
-        table_layout.setContentsMargins(10, 10, 10, 10)
+        self.table_layout.setContentsMargins(10, 10, 10, 10)
 
         self.donor_table_view = QTableView()
         self.donor_table_view.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeMode.ResizeToContents)
         self.donor_table_view.setWordWrap(True)
         self.donor_table_view.verticalHeader().setSectionResizeMode(QHeaderView.ResizeMode.ResizeToContents)
+        header = self.donor_table_view.horizontalHeader()
+        header.setMaximumSectionSize(600)
 
         ## select rows
         self.donor_table_view.setSelectionBehavior(QAbstractItemView.SelectionBehavior.SelectRows)
         self.donor_table_view.setSelectionMode(QAbstractItemView.SelectionMode.SingleSelection)
-
+        self.donor_table_view.clearSelection()
         ## get the data and add to table
         self.donor_table_model = DonorsTableModel()
         self.donor_table_view.setModel(self.donor_table_model)
-
-
 
         # --- layout ---
-        table_layout.addWidget(self.donors_table_view)
+        self.table_layout.addWidget(self.donor_table_view)
+        self.setLayout(self.table_layout)
 
-class ListDonorsWindow(QMainWindow):
-    def __init__(self):
-        super().__init__()
-        self.setWindowTitle("HIGGS AI Platform - List Donors")
-        self.resize(800, 500)
-
-        centralWidget = QWidget()  
-        layout = QVBoxLayout()
-        layout.setContentsMargins(0, 0, 0, 0)
-        # set up navigation bar
-        
-        nav_content = QWidget()
-        nav_content.setProperty("styling", "mainnavbar")
-        nav_layout = QHBoxLayout()
-        nav_layout.setContentsMargins(10, 5, 10, 0) 
-        nav_layout.addStretch()
-        nav_content.setLayout(nav_layout)
-
-        ## will add more later 
-        self.nav_auth_btn = QPushButton("Logout")
-        self.nav_auth_btn.setProperty("styling", "outline")
-        self.nav_auth_btn.clicked.connect(self.logout)
-        nav_layout.addWidget(self.nav_auth_btn)
-    
-        ## set up table
-        table_widget = QWidget()
-        table_layout = QVBoxLayout(table_widget)
-        table_layout.setContentsMargins(10, 10, 10, 10)
-
-        self.donor_table_view = QTableView()
-        self.donor_table_view.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeMode.ResizeToContents)
-        self.donor_table_view.setWordWrap(True)
-        self.donor_table_view.verticalHeader().setSectionResizeMode(QHeaderView.ResizeMode.ResizeToContents)
-
-        table_layout.addWidget(self.donor_table_view)
-
-        ## select rows
-        self.donor_table_view.setSelectionBehavior(QAbstractItemView.SelectionBehavior.SelectRows)
-        self.donor_table_view.setSelectionMode(QAbstractItemView.SelectionMode.SingleSelection)
-
-        ## get the data and add to table
-        self.donor_table_model = DonorsTableModel()
-        self.donor_table_view.setModel(self.donor_table_model)
-
-        ## generate matches button
-        self.generate_match_button = QPushButton("Generate Matches")
-        self.generate_match_button.clicked.connect(self.generate_match)
-        self.generate_match_button.setProperty("styling", "filled")
-
-        ## main layout set up
-        layout.addWidget(nav_content)
-        layout.addWidget(table_widget)
-        layout.addWidget(self.generate_match_button, alignment=Qt.AlignmentFlag.AlignHCenter)
-        layout.addStretch()
-        centralWidget.setLayout(layout)
-        self.setCentralWidget(centralWidget)        
-
-    ## to generate matches 
-    def generate_match(self):
+    def get_selection(self):
         if self.donor_table_view.selectionModel().hasSelection():
             row_index = self.donor_table_view.selectionModel().selectedRows()[0].row()
             data = self.donor_table_model._data[row_index]
             print(data)
-            try: 
 
-                # response = requests.post("http://127.0.0.1:8000/api/matchmaking/generate", json=payload) 
-                # # get json as dictionary 
-                # data = response.json()
-                # print(data["matches"])
-
-                response = requests.get(f"http://127.0.0.1:8000/api/donors/{data[0]}/recommendations?top_k=10&save_matches=False") # FIX: CHANGE TO TRUE LTR 
-                data = response.json()
-                print(data["recommendations"])
-
-                ## parse recommendation data
-                parse_data = [[m["ngo_id"], m["ngo"]["name"], m["ngo"]["strategy"], m["score"]] for m in data["recommendations"]]
-                print(parse_data)
-
-            except Exception as e:
-                print(f"Error in generating matches: {e}")
-                return
+            return data
         else:
-            QMessageBox.critical(self, "No Row Selected", "Please select a row in the donor table to generate matches")
-            return
+            return None
+
+    def get_data(self, row):
+        return self.donor_table_model._data[row]
+
+# class GenerateMatchesBtn(QPushButton):
+#     def __init__(self):
+#         super().__init__(self, "Generate Matches")
+#         """
+#         Generate matches button
+#         """
+#         self.generate_match_button.clicked.connect(self.generate_match)
+#         self.generate_match_button.setProperty("styling", "filled")
+
+    ## to generate matches 
+    # def generate_match(self):
+    #     if self.donor_table_view.selectionModel().hasSelection():
+    #         row_index = self.donor_table_view.selectionModel().selectedRows()[0].row()
+    #         data = self.donor_table_model._data[row_index]
+    #         print(data)
+    #         try: 
+
+    #             # response = requests.post("http://127.0.0.1:8000/api/matchmaking/generate", json=payload) 
+    #             # # get json as dictionary 
+    #             # data = response.json()
+    #             # print(data["matches"])
+
+    #             response = requests.get(f"http://127.0.0.1:8000/api/donors/{data[0]}/recommendations?top_k=10&save_matches=False") # FIX: CHANGE TO TRUE LTR 
+    #             data = response.json()
+    #             print(data["recommendations"])
+
+    #             ## parse recommendation data
+    #             parse_data = [[m["ngo_id"], m["ngo"]["name"], m["ngo"]["strategy"], m["score"]] for m in data["recommendations"]]
+    #             print(parse_data)
+
+    #         except Exception as e:
+    #             print(f"Error in generating matches: {e}")
+    #             return
+    #     else:
+    #         QMessageBox.critical(self, "No Row Selected", "Please select a row in the donor table to generate matches")
+    #         return
         
-    ## load matches page. pass in matches that have been generated + donor data of selected donor.
-    def load_matches_page(self):
-        return
-    
-    ## nav
-    def logout(self):
-        self.hide()
-        if self.parent_window:
-            self.parent_window.show() 
-        else:
-            try:
-                from main_ui import LoginWindow
-                self.login_window = LoginWindow()
-                self.login_window.show()
-            except ImportError:
-                pass
+    # ## load matches page. pass in matches that have been generated + donor data of selected donor.
+    # def load_matches_page(self):
+    #     return
 
-if __name__ == "__main__":
-    app = QApplication(sys.argv)
 
-    style = loadstylesheet()
-    if style:
-        app.setStyleSheet(style)
-    else:
-        print("No stylesheet")
 
-    window = ListDonorsWindow()
-    window.show()
-    sys.exit(app.exec())
 
 

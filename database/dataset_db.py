@@ -304,13 +304,14 @@ def list_matches_for_donor(donor_id: int):
     try:
         cur = conn.cursor()
         cur.execute(
-            f"""
-            SELECT donor_id, ngo_id, similarity, created_at
-            FROM donor_ngo_matches 
-            WHERE donor_id = {donor_id} 
-            ORDER BY similarity 
             """
-        )
+            SELECT a.donor_id, a.ngo_id, b.name, b.strategy, b.focus, b.sectors, a.similarity
+            FROM donor_ngo_matches a
+            JOIN ngos b ON a.ngo_id = b.id
+            WHERE donor_id = ?
+            ORDER BY similarity DESC
+            """
+        , (donor_id,))
         return cur.fetchall()
     finally:
         conn.close()

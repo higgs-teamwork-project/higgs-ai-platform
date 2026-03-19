@@ -6,7 +6,10 @@ from PySide6.QtWidgets import (QWidget,
                                QHBoxLayout,
                                QPushButton,
                                QMainWindow,
-                               QApplication)
+                               QApplication,
+                               QTableView,
+                               QHeaderView,
+                               QAbstractItemView)
 import requests
 from load_style_ui import loadstylesheet
 
@@ -27,10 +30,38 @@ class MatchesTableModel(QAbstractTableModel):
     
     def headerData(self, section, orientation, role):
         if role == Qt.ItemDataRole.DisplayRole and orientation == Qt.Orientation.Horizontal:
-            headers = ["ngo_id", "ngo_name", "ngo_strategy", "score"]
+            headers = ["ngo_id", "ngo_name", "match_score"]
             return headers[section]
         return None
     
 
     
-        
+class MatchesTable(QWidget):
+    def __init__(self, data: list):
+        super().__init__()
+
+        """
+        For layout 
+        """
+        self.table_layout = QVBoxLayout(self)
+        self.table_layout.setContentsMargins(10, 10, 10, 10)
+
+        self.matches_table_view = QTableView()
+        self.matches_table_view.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeMode.ResizeToContents)
+        self.matches_table_view.setWordWrap(True)
+        self.matches_table_view.verticalHeader().setSectionResizeMode(QHeaderView.ResizeMode.ResizeToContents)
+
+        self.matches_table_view.setSelectionMode(QAbstractItemView.SelectionMode.NoSelection)
+
+        # --- table model ---
+        self.matches_table_model = MatchesTableModel(data=data)
+        self.matches_table_view.setModel(self.matches_table_model)
+
+        # --- layout ---
+        self.table_layout.addWidget(self.matches_table_view)
+        self.setLayout(self.table_layout)
+
+    def set_data(self, data: list):
+        self.matches_table_model.beginResetModel()
+        self.matches_table_model._data = data
+        self.matches_table_model.endResetModel()

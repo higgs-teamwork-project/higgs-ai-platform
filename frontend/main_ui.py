@@ -7,8 +7,7 @@ from PySide6.QtCore import Qt
 from load_style_ui import loadstylesheet
 from output_ui import MatchmakingResultWindow
 from prompt_ui import HIGGSApp
-from list_donors_ui import ListDonorsWindow
-
+from matches_schedules_ui import GenerateOutputWindow
 # FOR TESTING PURPOSES
 from schedule_ui import ScheduleWindow
 
@@ -98,7 +97,7 @@ if __name__ == "__main__":
         print("No stylesheet")
 
 
-    window = ListDonorsWindow()
+    window = GenerateOutputWindow()
 
 
     window.show()
