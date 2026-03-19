@@ -45,7 +45,7 @@ class DonorsTableModel(QAbstractTableModel):
             donors = response.json()
             ## get just the ids + names + strategies
             donor_table_rows = [[d["id"], d["name"], d["strategy"]] for d in donors]
-            print(donor_table_rows)
+            #print(donor_table_rows)
             return donor_table_rows      
 
         except:
@@ -78,7 +78,7 @@ class DonorsTable(QWidget):
         Outer widget for spacing, styling etc
         """
         self.table_layout = QVBoxLayout()
-        
+        self.setStyleSheet("background-color: white; border-radius: 3px; border-color: #d4d4d4; border-width: 2px;")
         # --- set up table ---
         self.table_layout.setContentsMargins(10, 10, 10, 10)
 
@@ -86,6 +86,9 @@ class DonorsTable(QWidget):
         self.donor_table_view.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeMode.ResizeToContents)
         self.donor_table_view.setWordWrap(True)
         self.donor_table_view.verticalHeader().setSectionResizeMode(QHeaderView.ResizeMode.ResizeToContents)
+        self.donor_table_view.verticalHeader().setVisible(False)
+        self.donor_table_view.setAlternatingRowColors(True)
+        self.donor_table_view.setProperty("styling", "donors")
         header = self.donor_table_view.horizontalHeader()
         header.setMaximumSectionSize(600)
 
@@ -105,7 +108,7 @@ class DonorsTable(QWidget):
         if self.donor_table_view.selectionModel().hasSelection():
             row_index = self.donor_table_view.selectionModel().selectedRows()[0].row()
             data = self.donor_table_model._data[row_index]
-            print(data)
+        # print(data)
 
             return data
         else:

@@ -91,6 +91,7 @@ if __name__ == "__main__":
     ## FOR TESTING PURPOSES
 
     style = loadstylesheet()
+    print(style)
     if style:
         app.setStyleSheet(style)
     else:

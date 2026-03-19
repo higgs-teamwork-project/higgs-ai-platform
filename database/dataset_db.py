@@ -296,7 +296,7 @@ def save_match(
     finally:
         conn.close()
 
-def list_matches_for_donor(donor_id: int):
+def list_matches_for_donor(donor_id: int) -> list[sqlite3.Row]:
     """
     Retrieve all matches for specific donor. 
     """
