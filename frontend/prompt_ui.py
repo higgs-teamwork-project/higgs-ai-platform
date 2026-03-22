@@ -13,7 +13,7 @@ from PySide6.QtWidgets import (QApplication, QMainWindow, QWidget, QVBoxLayout,
                              QHBoxLayout, QLabel, QLineEdit, QPushButton, 
                              QComboBox, QProgressBar, QStackedWidget, QDialog,
                              QMessageBox, QTreeWidget, QTreeWidgetItem, QListWidgetItem)
-from PySide6.QtCore import Qt, QTimer
+from PySide6.QtCore import Qt, QTimer, QThread, Signal
 from PySide6.QtGui import QFont, QIntValidator
 
 # --- DESIGN RICHTLINIEN (Aus deinen Anforderungen) ---
@@ -213,6 +213,30 @@ class ManageNGODialog(QDialog):
             QMessageBox.critical(self, "Error", str(e))
 
 
+#backend communication for AI matching (Extension)
+class MatchWorker(QThread):
+    finished_signal = Signal(dict) 
+    error_signal = Signal(str)    
+
+    def __init__(self, payload):
+        super().__init__()
+        self.payload = payload
+
+    def run(self):
+        try:
+            response = requests.post("http://127.0.0.1:8000/api/matchmaking/generate", json=self.payload)
+            
+            if response.status_code == 200:
+                self.finished_signal.emit(response.json())
+            else:
+                self.error_signal.emit(f"Server Error: {response.status_code}\n{response.text}")
+                
+        except requests.exceptions.ConnectionError:
+            self.error_signal.emit("Connection Error: Could not connect to the backend. Is it running?")
+        except Exception as e:
+            self.error_signal.emit(f"Unexpected Error: {str(e)}")
+
+
 class HIGGSApp(QMainWindow):
     def __init__(self,dashboard_window=None):
         super().__init__()
@@ -349,39 +373,39 @@ class HIGGSApp(QMainWindow):
         return page
 
     def handle_generate(self):
-        """Überprüft die Pflichtfelder und startet den Ladevorgang."""
-        is_valid = True
+        donor_name = ""
+        donor_strategy = ""
+
+        try:
+            response = requests.get("http://127.0.0.1:8000/api/donors")
+            if response.status_code ==200:
+                donors = response.json()
+                if not donors:
+                    QMessageBox.warning(self, "No Donors", "Please add at least one donor to generate matches.")
+                    return
+                latest_donor = donors[-1]
+                donor_name = latest_donor.get("name", "Unknown")
+                donor_strategy = latest_donor.get("strategy", "")
+
+            else:
+                QMessageBox.warning(self, "Error", f"Failed to fetch donors")
+                return
+            
+        except Exception as e:
+            QMessageBox.critical(self, "Connection Error", f"Could not connect to backend: {str(e)}")
+            return      
         
-        # 1. Frontend Check: Mandatory Fields
-        name = self.input_name.text().strip()
-        strategy_idx = self.combo_strategy.currentIndex()
-
-        # Reset Styles
-        self.input_name.setStyleSheet(INPUT_STYLE_DEFAULT)
-        self.combo_strategy.setStyleSheet(INPUT_STYLE_DEFAULT)
-
-        # Falls Name fehlt -> Roter Rand
-        if not name:
-            self.input_name.setStyleSheet(INPUT_STYLE_ERROR)
-            is_valid = False
-
-        # Falls Strategy auf Index 0 (Placeholder) steht -> Roter Rand
-        if strategy_idx == 0:
-            self.combo_strategy.setStyleSheet(INPUT_STYLE_ERROR)
-            is_valid = False
-
-        # 2. Wenn nicht valide: Warnung und Abbruch
-        if not is_valid:
-            # Rote Rahmen sind gesetzt, wir brechen hier ab.
-            return
+        # send the input data to the backend for AI processing
+        payload = { "donor_name": donor_name, "donor_strategy": donor_strategy} 
 
         # 3. Wenn valide: Lade-Dialog anzeigen
-        self.loading_dialog = LoadingDialog(self)
+        self.loading_dialog = LoadingDialog(payload,self)
         self.loading_dialog.start_loading()
         
         # exec() pausiert das Hauptfenster, bis der Dialog fertig ist
         if self.loading_dialog.exec(): 
             # 4. If successful: Jump to result page
+            print("Successfully received data from Backend:", self.loading_dialog.result_data)
             self.stack.setCurrentIndex(1)
         else:
             # If failed: Display dialogue (Hier simuliert, falls der Dialog abgebrochen würde)
@@ -391,16 +415,15 @@ class HIGGSApp(QMainWindow):
         self.dialog = ManageNGODialog(self)
         self.dialog.exec()
 
-if __name__ == "__main__":
-    app = QApplication(sys.argv)
-    window = HIGGSApp()
-    window.show()
-    sys.exit(app.exec())
+
 
 class LoadingDialog(QDialog):
     """Der Dialog, der während der 'Backend'-Analyse angezeigt wird."""
-    def __init__(self, parent=None):
+    def __init__(self, payload, parent=None):
         super().__init__(parent)
+        self.payload = payload
+        self.result_data = None # to store the result from backend
+
         self.setWindowTitle("Loading")
         self.setFixedSize(400, 200)
         self.setStyleSheet(f"background-color: {COLOR_WHITE}; border-radius: 16px;")
@@ -429,17 +452,32 @@ class LoadingDialog(QDialog):
         self.timer.timeout.connect(self.update_progress)
         self.step = 0
 
+        # Backend Worker Thread starten
+        self.worker = MatchWorker(self.payload)
+        self.worker.finished_signal.connect(self.on_success)
+        self.worker.error_signal.connect(self.on_error)
+
     def start_loading(self):
         self.step = 0
         self.progress.setValue(0)
         self.timer.start(30) # Alle 30ms updaten
+        self.worker.start() #start the backend worker thread
 
     def update_progress(self):
+     if self.step < 90:
         self.step += 1
-        self.progress.setValue(self.step)
-        if self.step >= 100:
-            self.timer.stop()
-            self.accept() # Schließt den Dialog erfolgreich
+        self.progress.setValue(self.step) # at most 90% to keep some suspense until backend finishes
+
+    def on_success(self, data):
+        self.timer.stop()
+        self.progress.setValue(100) # reach 100% on success
+        self.result_data = data # store the backend result for later use
+        self.accept() # close the dialog with success
+    
+    def on_error(self, error_msg):
+        self.timer.stop()
+        QMessageBox.critical(self, "Matchmaking Failed", error_msg)
+        self.reject() # close the dialog with failure
 
 # Manage Donor 
 class ManageDonorDialog(QDialog):
@@ -546,3 +584,9 @@ class ManageDonorDialog(QDialog):
                 QMessageBox.warning(self, "Error", f"Failed to delete Donor: {error_msg} (Code: {response.status_code})")
         except Exception as e:
             QMessageBox.critical(self, "Connection Error", f"Could not connect to backend: {str(e)}")
+
+if __name__ == "__main__":
+    app = QApplication(sys.argv)
+    window = HIGGSApp(None)
+    window.show()
+    sys.exit(app.exec())
