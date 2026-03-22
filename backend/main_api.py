@@ -292,3 +292,31 @@ async def import_excel(file: UploadFile = File(...)):
 
     summary = database.excel_import.import_dataset_from_excel(save_path)
     return {"file": file.filename, "summary": summary}
+
+# Add and delete donors
+
+class AddDonorBody(BaseModel):
+    name: str
+    strategy: Optional[str] = None
+    legal_form: Optional[str] = None
+
+@app.post("/api/donors")
+async def add_donor(body: AddDonorBody):
+    if not (body.name or "").strip():
+        raise HTTPException(status_code=400, detail="Donor name is required")
+    donor_id = dataset_db.insert_donor(
+        name=body.name.strip(),
+        strategy=body.strategy,
+        legal_form=body.legal_form,
+    )
+    return {"status": "ok", "id": donor_id, "message": f"Donor '{body.name.strip()}' added."}
+
+class DeleteDonorsBody(BaseModel):
+    ids: list[int]
+
+@app.delete("/api/donors")
+async def delete_donors(body: DeleteDonorsBody):
+    if not body.ids:
+        raise HTTPException(status_code=400, detail="ids must be a non-empty list")
+    deleted = dataset_db.delete_donors(body.ids)
+    return {"status": "ok", "deleted": deleted}

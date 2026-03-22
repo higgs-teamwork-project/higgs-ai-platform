@@ -235,6 +235,23 @@ def delete_ngos(ngo_ids: Iterable[int]) -> int:
     finally:
         conn.close()
 
+# Added new delete_donor
+def delete_donors(donor_ids: Iterable[int]) -> int:
+    """Delete multiple donors by ID. Also removes donor_ngo_matches for them."""
+    ids = list(donor_ids)
+    if not ids:
+        return 0
+    conn = get_connection()
+    try:
+        cur = conn.cursor()
+        placeholders = ",".join("?" * len(ids))
+        cur.execute(f"DELETE FROM donor_ngo_matches WHERE donor_id IN ({placeholders})", ids)
+        cur.execute(f"DELETE FROM donors WHERE id IN ({placeholders})", ids)
+        conn.commit()
+        return cur.rowcount
+    finally:
+        conn.close()
+
 
 def update_donor_embedding(donor_id: int, embedding: bytes) -> None:
     """
