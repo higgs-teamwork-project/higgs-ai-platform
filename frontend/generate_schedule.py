@@ -2,38 +2,17 @@ from datetime import datetime, date, time, timedelta
 from pydantic import BaseModel
 
 # generate schedule given a list of donors and matches
-
-
-# # add to schedule the meetings for and and their matches 
-# def generate_day_for_donor(donor: str, matches: list[str], schedule: dict[tuple[str, datetime], str], day: datetime):
-#     START = datetime.combine(day, time(15,0))
-#     END = datetime.combine(day, time(17,0))
-
-#     # no breaks for now
-#     slot = 0
-#     solved = []
-#     next_slot_start = START
-#     for match in matches:
-#         next_slot_start = next_slot_start + timedelta(minutes=13) # check in 13 minute slots
-#         if (next_slot_start > END):
-#             break
-#         else: 
-#             if (match, next_slot_start) not in schedule:
-#                 schedule[(match, next_slot_start)] = donor
-#                 solved.append(match)
-
-# schedule is (ngo, timeslot) -> donor
-
 # slots is tuples[ngo, datetime slot]
 
 class donor_schedule:
-    def __init__(self, donor: str):
+    def __init__(self, donor: int):
         self.donor = donor
         self.slots = []
 
-class donor_matches(BaseModel):
-    donor: str
-    matches: list[str]
+class donor_matches():
+    def __init__(self, donor, matches):
+        self.donor = donor
+        self.matches = matches
 
 # take a list of donors and their matches
 def generate_schedule(matchmaking: list[donor_matches], day: datetime):

@@ -316,6 +316,23 @@ def list_matches_for_donor(donor_id: int) -> list[sqlite3.Row]:
     finally:
         conn.close()
 
+def list_all_matches() -> list[sqlite3.Row]:
+    """
+    Retrieve all saved matches. 
+    """
+    conn = get_connection()
+    try:
+        cur = conn.cursor()
+        cur.execute(
+            """
+            SELECT donor_id, ngo_id
+            FROM donor_ngo_matches
+            """
+        )
+        return cur.fetchall()
+    finally:
+        conn.close()
+
 def _join(values: Optional[Iterable[str]]) -> Optional[str]:
     if values is None:
         return None

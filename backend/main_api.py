@@ -147,6 +147,11 @@ async def get_donor_matches(donor_id: int):
     matches = dataset_db.list_matches_for_donor(donor_id=donor_id)
     return [_row_to_jsonable(m) for m in matches]
 
+@app.get("/api/getmatches/all")
+async def get_all_matchs():
+    matches = dataset_db.list_all_matches()
+    return [_row_to_jsonable(m) for m in matches]
+
 # ---------- Add / delete NGOs (single donor matchmaking; NGOs managed separately) ----------
 # Donors and NGOs live in the same database (dataset.db) but in different tables.
 # Users can add/delete NGOs without affecting donors.
@@ -335,3 +340,14 @@ async def get_ngo_meetings(ngo_id: int):
 async def get_meeting(donor_id: int, ngo_id: int):
     meeting = schedule_db.get_donor_ngo_meeting(donor_id=donor_id, ngo_id=ngo_id)
     return meeting
+
+class MeetingList(BaseModel):
+    meetings: list[(int, int, datetime)] # (donor id, ngo id, meeting time)
+
+@app.post("/api/schedule/add-many-meetings")
+async def add_many_meetings(body: MeetingList):
+    try:
+        schedule_db.batch_insert_meetings(body.meetings)
+        return {"status": "success", "message": "Meetings created"}
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=str(e))

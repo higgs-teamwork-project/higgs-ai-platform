@@ -75,6 +75,27 @@ def insert_meeting(
     finally:
         conn.close()
 
+def batch_insert_meetings(meetings: list):
+    """
+    Insert many meetings at once
+    """
+    conn = get_connection()
+    try:
+        cur = conn.cursor()
+        cur.executemany(
+            """
+            INSERT INTO schedule(donor_id, ngo_id, meeting_time)
+            VALUES(?, ?, ?)
+            ON CONFLICT(donor_id, ngo_id)
+            DO UPDATE SET meeting_time=excluded.meeting_time;
+            """,
+            meetings
+        )
+        conn.commit()
+    finally:
+        conn.close()
+
+
 def get_donor_meetings(donor_id: int) -> list[sqlite3.Row]:
     """
     Get meetings for specific donor

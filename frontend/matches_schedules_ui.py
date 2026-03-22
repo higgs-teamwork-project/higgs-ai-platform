@@ -173,6 +173,34 @@ style = """
             background: none;
         }
         """
+"""
+
+generating schedule
+should regenerate schedule everytime new matches added
+should generate schedule at the start 
+
+generate schedule should update db after processing each donor
+when you click on a donor, like w matches, retrieve schedule from DB
+exact same logic as generate matches then
+
+pseudo code
+
+schedule = (ngo, time) -> donors , for all donors
+matched = (donor, ngo) -> time , pairs that already have a meeting
+for each donor
+for each ngo donor is matched with
+if (donor, ngo) is in matched skip
+else
+current slot = last slot for donor + 13 (with conditions for days)
+while not found
+if (ngo, time) exists in schedule increment current slot by 13 (w. conditions)
+else add to matches, schedule and write to db. set found as true.
+
+
+
+
+"""
+
 
 
 class GenerateOutputWindow(QMainWindow):
