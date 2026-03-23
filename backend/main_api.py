@@ -351,3 +351,8 @@ async def add_many_meetings(body: MeetingList):
         return {"status": "success", "message": "Meetings created"}
     except Exception as e:
         raise HTTPException(status_code=400, detail=str(e))
+    
+@app.get("/api/schedule/get-all-meetings")
+async def get_all_meetings():
+    meetings = schedule_db.get_all_meetings()
+    return [_row_to_jsonable(m) for m in meetings]

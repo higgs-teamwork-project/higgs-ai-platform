@@ -33,7 +33,6 @@ def initialize_schema() -> None:
         cur.execute(
             """
             CREATE TABLE IF NOT EXISTS schedule (
-                id INTEGER AUTOINCREMENT,
                 donor_id INTEGER NOT NULL,
                 ngo_id INTEGER NOT NULL,
                 meeting_time TIMESTAMP,
@@ -155,3 +154,16 @@ def get_donor_ngo_meeting(
         return cur.fetchone()
     finally:
         conn.close()
+
+def get_all_meetings():
+    conn = get_connection()
+    try:
+        cur = conn.cursor()
+        cur.execute(
+            "SELECT * FROM schedule"
+        )
+        return cur.fetchall()
+    finally:
+        conn.close()
+
+

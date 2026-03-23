@@ -15,6 +15,8 @@ import requests
 from load_style_ui import loadstylesheet
 from list_donors_table_ui import DonorsTableModel, DonorsTable
 from show_matches_table_ui import MatchesTable
+from schedule_ui import generate_schedule, Schedule
+from datetime import datetime, date, time 
 import sys
 
 """
@@ -58,6 +60,9 @@ class MatchesTabView(QWidget):
             self.generate_matches_btn.hide()
 
         # --- schedule tab ---
+        self.donor_schedule = self.parse_schedule()
+        self.schedule = Schedule(self.donor_schedule)
+
         # put in nothing for now apart from base layout
         schedule_outer_layout = QVBoxLayout(self.schedule_tab)
         self.schedule_tab.setLayout(schedule_outer_layout)
@@ -82,12 +87,41 @@ class MatchesTabView(QWidget):
             QMessageBox.critical(self, "Server Error", "Could not retrieve donors. Please try again later.")
             return None
 
+    def parse_schedule(self):
+        try:
+            response = requests.get(f"http://127.0.0.1:8000/api/schedule/donor/{self.donor_id}/meetings")
+            data = response.json()
+            print(data)
+
+            if len(data) == 0:
+                return []
+            else:
+                return data
+        except:
+            QMessageBox.critical(self, "Server Error", "Could not retrieve schedule for donor. Please try again later.")
+            return None
+
+    def get_existing_meetings(self):
+        try:
+            response = requests.get(f"http://127.0.0.1:8000/api/schedule/get-all-meetings")
+            data = response.json()
+            print(data)
+
+            if len(data) == 0:
+                return []
+            else:
+                return data
+        except:
+            QMessageBox.critical(self, "Server Error", "Could not retrieve schedule. Please try again later.")
+            return None
+
     def generate_match(self):
         try:
             response = requests.get(f"http://127.0.0.1:8000/api/donors/{self.donor_id}/recommendations?top_k=10&save_matches=True")
             data = response.json()
             print(data)
             self.load_matches_table()
+            self.make_donor_schedule(data["recommendations"])
         except:
             QMessageBox.critical(self, "Server Error", "Could not generate matches. Please try again later.")
             return None
@@ -101,6 +135,14 @@ class MatchesTabView(QWidget):
     def add_generate_btn(self):
         self.generate_matches_btn.show()
         self.matches_table.hide()
+
+    def make_donor_schedule(self, results: list):
+        existing_meetings = self.get_existing_meetings()
+        # first make recs into right format
+        recs = [{"donor_id": self.donor_id, "ngo_id": d["ngo_id"]} for d in results]
+        generate_schedule(existing_meetings, recs, datetime(2026, 7, 1))
+        donor_data = self.parse_schedule()
+        self.schedule.remake(donor_data)
 
 
 class SplitView(QWidget):

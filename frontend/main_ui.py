@@ -9,7 +9,6 @@ from output_ui import MatchmakingResultWindow
 from prompt_ui import HIGGSApp
 from matches_schedules_ui import GenerateOutputWindow
 # FOR TESTING PURPOSES
-from schedule_ui import ScheduleWindow
 
 # ---- THE MAGIC LINK: Import your new file here! ----
 from registration_ui import RegistrationWindow 
