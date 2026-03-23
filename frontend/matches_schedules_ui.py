@@ -61,11 +61,11 @@ class MatchesTabView(QWidget):
 
         # --- schedule tab ---
         self.donor_schedule = self.parse_schedule()
-        self.schedule = Schedule(self.donor_schedule)
-
-        # put in nothing for now apart from base layout
+        self.schedule = Schedule(self.donor_schedule, datetime(2026, 7, 1))
+        self.schedule.remake(self.donor_schedule)
         schedule_outer_layout = QVBoxLayout(self.schedule_tab)
         self.schedule_tab.setLayout(schedule_outer_layout)
+        schedule_outer_layout.addWidget(self.schedule)
 
         # --- set up ---
         self.tab_layout.addWidget(self.tab_view)
@@ -117,13 +117,14 @@ class MatchesTabView(QWidget):
 
     def generate_match(self):
         try:
-            response = requests.get(f"http://127.0.0.1:8000/api/donors/{self.donor_id}/recommendations?top_k=10&save_matches=True")
+            response = requests.get(f"http://127.0.0.1:8000/api/donors/{self.donor_id}/recommendations?top_k=22 &save_matches=True")
             data = response.json()
             print(data)
             self.load_matches_table()
             self.make_donor_schedule(data["recommendations"])
-        except:
+        except Exception as e:
             QMessageBox.critical(self, "Server Error", "Could not generate matches. Please try again later.")
+            print("ERROR: "+ e)
             return None
     
     def load_matches_table(self):
@@ -139,7 +140,7 @@ class MatchesTabView(QWidget):
     def make_donor_schedule(self, results: list):
         existing_meetings = self.get_existing_meetings()
         # first make recs into right format
-        recs = [{"donor_id": self.donor_id, "ngo_id": d["ngo_id"]} for d in results]
+        recs = [{"donor_id": self.donor_id, "ngo_id": d["ngo_id"], "ngo_name": d["ngo"]["name"]} for d in results]
         generate_schedule(existing_meetings, recs, datetime(2026, 7, 1))
         donor_data = self.parse_schedule()
         self.schedule.remake(donor_data)

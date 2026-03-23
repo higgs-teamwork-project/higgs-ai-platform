@@ -35,6 +35,7 @@ def initialize_schema() -> None:
             CREATE TABLE IF NOT EXISTS schedule (
                 donor_id INTEGER NOT NULL,
                 ngo_id INTEGER NOT NULL,
+                ngo_name TEXT,
                 meeting_time TIMESTAMP,
                 PRIMARY KEY (donor_id, ngo_id)
             );
@@ -47,6 +48,7 @@ def initialize_schema() -> None:
 def insert_meeting(
     donor_id: int,
     ngo_id: int,
+    ngo_name: str,
     timestamp: datetime
 ) -> int:
     """
@@ -58,14 +60,15 @@ def insert_meeting(
         cur = conn.cursor()
         cur.execute(
             """
-            INSERT INTO schedule(donor_id, ngo_id, meeting_time)
-            VALUES(?, ?, ?)
+            INSERT INTO schedule(donor_id, ngo_id, ngo_name, meeting_time)
+            VALUES(?, ?, ?, ?)
             ON CONFLICT(donor_id, ngo_id)
             DO UPDATE SET meeting_time=excluded.meeting_time;
             """,
             (
                 donor_id,
                 ngo_id,
+                ngo_name,
                 timestamp,
             ),
         )
@@ -78,13 +81,14 @@ def batch_insert_meetings(meetings: list):
     """
     Insert many meetings at once
     """
+    print(meetings)
     conn = get_connection()
     try:
         cur = conn.cursor()
         cur.executemany(
             """
-            INSERT INTO schedule(donor_id, ngo_id, meeting_time)
-            VALUES(?, ?, ?)
+            INSERT INTO schedule(donor_id, ngo_id, ngo_name, meeting_time)
+            VALUES(?, ?, ?, ?)
             ON CONFLICT(donor_id, ngo_id)
             DO UPDATE SET meeting_time=excluded.meeting_time;
             """,
@@ -107,6 +111,7 @@ def get_donor_meetings(donor_id: int) -> list[sqlite3.Row]:
             SELECT * 
             FROM schedule
             WHERE donor_id = ?
+            ORDER BY meeting_time ASC 
             """,
             (donor_id,)
         )
@@ -126,6 +131,7 @@ def get_ngo_meetings(ngo_id: int) -> list[sqlite3.Row]:
             SELECT * 
             FROM schedule
             WHERE ngo_id = ?
+            ORDER BY meeting_time ASC
             """,
             (ngo_id,)
         )

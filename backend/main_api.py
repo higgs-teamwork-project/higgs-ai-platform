@@ -1,5 +1,5 @@
 from pathlib import Path
-from typing import Optional
+from typing import *
 from fastapi import FastAPI, HTTPException, UploadFile, File
 from pydantic import BaseModel
 from datetime import datetime
@@ -342,10 +342,11 @@ async def get_meeting(donor_id: int, ngo_id: int):
     return meeting
 
 class MeetingList(BaseModel):
-    meetings: list[(int, int, datetime)] # (donor id, ngo id, meeting time)
+    meetings: List[Tuple[int, int, str, datetime]] # (donor id, ngo id, meeting time)
 
 @app.post("/api/schedule/add-many-meetings")
 async def add_many_meetings(body: MeetingList):
+    print("adding meetings api")
     try:
         schedule_db.batch_insert_meetings(body.meetings)
         return {"status": "success", "message": "Meetings created"}
