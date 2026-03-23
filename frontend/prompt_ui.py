@@ -548,6 +548,7 @@ class ManageDonorDialog(QDialog):
             else:
                 QMessageBox.warning(self, "Error", response.json().get("detail", "Failed to add Donor."))
         except Exception as e:
+            print(f"Add error: {e}")
             QMessageBox.critical(self, "Connection Error", str(e))
 
     def refresh_data(self):
@@ -583,6 +584,7 @@ class ManageDonorDialog(QDialog):
                 error_msg = response.json().get("detail", "Unknown error")
                 QMessageBox.warning(self, "Error", f"Failed to delete Donor: {error_msg} (Code: {response.status_code})")
         except Exception as e:
+            print(f"Delete error: {e}")
             QMessageBox.critical(self, "Connection Error", f"Could not connect to backend: {str(e)}")
 
 if __name__ == "__main__":
