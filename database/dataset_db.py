@@ -313,6 +313,42 @@ def save_match(
     finally:
         conn.close()
 
+def list_matches_for_donor(donor_id: int) -> list[sqlite3.Row]:
+    """
+    Retrieve all matches for specific donor. 
+    """
+    conn = get_connection()
+    try:
+        cur = conn.cursor()
+        cur.execute(
+            """
+            SELECT a.donor_id, a.ngo_id, b.name, b.strategy, b.focus, b.sectors, a.similarity
+            FROM donor_ngo_matches a
+            JOIN ngos b ON a.ngo_id = b.id
+            WHERE donor_id = ?
+            ORDER BY similarity DESC
+            """
+        , (donor_id,))
+        return cur.fetchall()
+    finally:
+        conn.close()
+
+def list_all_matches() -> list[sqlite3.Row]:
+    """
+    Retrieve all saved matches. 
+    """
+    conn = get_connection()
+    try:
+        cur = conn.cursor()
+        cur.execute(
+            """
+            SELECT donor_id, ngo_id
+            FROM donor_ngo_matches
+            """
+        )
+        return cur.fetchall()
+    finally:
+        conn.close()
 
 def _join(values: Optional[Iterable[str]]) -> Optional[str]:
     if values is None:

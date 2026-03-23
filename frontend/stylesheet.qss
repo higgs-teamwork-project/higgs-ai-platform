@@ -1,0 +1,104 @@
+QPushButton[styling="outline"]{
+    padding: 5px 15px; 
+    margin: 5px; 
+    color: #C12250; 
+    border: 1px solid #C12250; 
+    border-radius: 3px; 
+    background-color: #FFFFFF;      
+}
+
+QPushButton[styling="filled"]{
+    margin: 5px; 
+    color: #FFFFFF; 
+    border-radius: 3px; 
+    background-color: #C12250;   
+    padding: 10px 10px;
+    font-size: 16px;   
+    font-weight: bold;
+}
+
+QLabel[styling="titleLabel"]{
+    font-size: 28px; 
+    font-weight: bold; 
+    color: #C12250; 
+    margin-bottom: 20px;
+}
+
+QPushButton[styling="tileButton"]{
+    background-color: #FFFFFF; 
+    color: black; 
+    font-size: 22px; 
+    font-weight: bold; 
+    border: none; 
+    border-radius: 10px; 
+    min-width: 180px; 
+    min-height: 180px;
+}
+
+.QWidget{
+    background-color: #E9E8E8;
+}
+
+QWidget[styling="mainnavbar"]{
+    background-color: #FFFFFF;
+}
+
+QTableView[styling="donors"]{
+    background-color: #FFFFFF;
+    alternate-background-color: #E9E8E8;
+    gridline-color: #d4d4d4;
+    font-size: 12px;
+    padding: 10px 10px;
+    selection-background-color: #7EE081;
+}
+QTableView[styling="donors"] QHeaderView::section{
+    background-color: #C12250;
+    font-size: 12px;
+    color: #FFFFFF;
+    font-weight: bold;
+}
+
+QTableView[styling="donors"] QTableCornerButton::section {
+    background: #C12250;
+    padding: 2px 2px;
+}
+
+QTableView[styling="matches"]{
+    background-color: #FFFFFF;
+    alternate-background-color: #E9E8E8;
+    gridline-color: #d4d4d4;
+    font-size: 12px;
+    padding: 10px 10px;
+    selection-background-color: #bbb8b8;
+}
+
+QTableView[styling="matches"] QHeaderView::section {
+    background-color: #99ff9c;
+    font-size: 12px;
+    font-weight: bold;
+}
+
+QTabBar::tab {
+    background: #FFFFFF;
+    border: 2px solid #d4d4d4;
+    border-bottom-color: #b1b4b8; /* same as the pane color */
+    border-top-left-radius: 4px;
+    border-top-right-radius: 4px;
+    min-width: 8ex;
+    padding: 10px;
+    font-size: 14px;
+    font-weight: bold;
+}
+
+QTabBar::tab:selected, QTabBar::tab:hover {
+    background: #E9E8E8;
+}
+
+QTabBar::tab:selected {
+    border-color: #d4d4d4;
+    border-bottom-color: #b1b4b8; /* same as pane color */
+}
+
+QTabBar::tab:!selected {
+    margin-top: 2px; /* make non-selected tabs look smaller */
+}
