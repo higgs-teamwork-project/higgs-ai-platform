@@ -1,4 +1,3 @@
-# frontend/main_ui.py
 import sys
 import requests
 from PySide6.QtWidgets import (QApplication, QMainWindow, QWidget, QVBoxLayout, 
@@ -8,9 +7,7 @@ from load_style_ui import loadstylesheet
 from output_ui import MatchmakingResultWindow
 from prompt_ui import HIGGSApp
 from matches_schedules_ui import GenerateOutputWindow
-# FOR TESTING PURPOSES
 
-# ---- THE MAGIC LINK: Import your new file here! ----
 from registration_ui import RegistrationWindow 
 from dashboard_ui import DashboardWindow
 
@@ -21,11 +18,14 @@ class LoginWindow(QMainWindow):
         self.resize(400, 300)
 
         central_widget = QWidget()
+        central_widget.setProperty("styling", "mainnavbar")
+        
         layout = QVBoxLayout()
         layout.setAlignment(Qt.AlignCenter)
 
         self.title_label = QLabel("Welcome to HIGGS Matchmaking")
-        self.title_label.setStyleSheet("font-size: 18px; font-weight: bold; margin-bottom: 20px;")
+        self.title_label.setProperty("styling", "titleLabel")
+        self.title_label.setAlignment(Qt.AlignCenter)
 
         self.username_input = QLineEdit()
         self.username_input.setPlaceholderText("Organization Email")
@@ -35,11 +35,11 @@ class LoginWindow(QMainWindow):
         self.password_input.setEchoMode(QLineEdit.Password)
 
         self.login_button = QPushButton("Login")
-        self.login_button.setStyleSheet("padding: 8px; background-color: #007bff; color: white; font-weight: bold;")
+        self.login_button.setProperty("styling", "filled")
         self.login_button.clicked.connect(self.handle_login)
 
         self.signup_button = QPushButton("Don't have an account? Sign Up")
-        self.signup_button.setStyleSheet("padding: 8px; border: none; color: #007bff; text-decoration: underline;")
+        self.signup_button.setProperty("styling", "outline")
         self.signup_button.clicked.connect(self.open_registration)
 
         layout.addWidget(self.title_label)
@@ -51,14 +51,12 @@ class LoginWindow(QMainWindow):
         central_widget.setLayout(layout)
         self.setCentralWidget(central_widget)
 
-        # Instantiate the registration window so we can show it when needed 
         self.registration_window = RegistrationWindow(self)
-        self.dashboard_window = DashboardWindow()  # Instantiate the dashboard window for later use
+        self.dashboard_window = DashboardWindow()
 
-    # Opens up the dashboard window after successful login
     def open_dashboard(self):
         self.hide()
-        self.dashboard_window = DashboardWindow(parent_window=self)  # Create a new instance of the dashboard
+        self.dashboard_window = DashboardWindow(parent_window=self)
         self.dashboard_window.show()
 
     def handle_login(self):
@@ -86,7 +84,7 @@ class LoginWindow(QMainWindow):
 
 if __name__ == "__main__":
     app = QApplication(sys.argv)
-    ##window = LoginWindow()
+    window = LoginWindow()
     ## FOR TESTING PURPOSES
 
     style = loadstylesheet()
@@ -97,7 +95,7 @@ if __name__ == "__main__":
         print("No stylesheet")
 
 
-    window = GenerateOutputWindow()
+    ##window = GenerateOutputWindow()
 
 
     window.show()
