@@ -13,7 +13,7 @@ from PySide6.QtWidgets import (QApplication, QMainWindow, QWidget, QVBoxLayout,
                              QHBoxLayout, QLabel, QLineEdit, QPushButton, 
                              QComboBox, QProgressBar, QStackedWidget, QDialog,
                              QMessageBox, QTreeWidget, QTreeWidgetItem, QListWidgetItem)
-from PySide6.QtCore import Qt, QTimer
+from PySide6.QtCore import Qt, QTimer, QThread, Signal
 from PySide6.QtGui import QFont, QIntValidator
 
 # --- DESIGN RICHTLINIEN (Aus deinen Anforderungen) ---
@@ -213,6 +213,30 @@ class ManageNGODialog(QDialog):
             QMessageBox.critical(self, "Error", str(e))
 
 
+#backend communication for AI matching (Extension)
+class MatchWorker(QThread):
+    finished_signal = Signal(dict) 
+    error_signal = Signal(str)    
+
+    def __init__(self, payload):
+        super().__init__()
+        self.payload = payload
+
+    def run(self):
+        try:
+            response = requests.post("http://127.0.0.1:8000/api/matchmaking/generate", json=self.payload)
+            
+            if response.status_code == 200:
+                self.finished_signal.emit(response.json())
+            else:
+                self.error_signal.emit(f"Server Error: {response.status_code}\n{response.text}")
+                
+        except requests.exceptions.ConnectionError:
+            self.error_signal.emit("Connection Error: Could not connect to the backend. Is it running?")
+        except Exception as e:
+            self.error_signal.emit(f"Unexpected Error: {str(e)}")
+
+
 class HIGGSApp(QMainWindow):
     def __init__(self,dashboard_window=None):
         super().__init__()
@@ -274,62 +298,23 @@ class HIGGSApp(QMainWindow):
         main_layout = QVBoxLayout(page)
         main_layout.setAlignment(Qt.AlignCenter)
         
-        # --- KARTEN DESIGN ---
-        # Background Frame (White), nesting multiple of 8 (24px)
+        # Background Card
         card = QWidget()
-        card.setFixedWidth(600)
+        card.setFixedWidth(500)
         card.setStyleSheet(f"QWidget {{ background-color: {COLOR_WHITE}; border-radius: 24px; }}")
         card_layout = QVBoxLayout(card)
         card_layout.setContentsMargins(50, 50, 50, 50)
         card_layout.setSpacing(25)
 
-        title = QLabel("Matchmaking Configuration")
+        title = QLabel("Data management")
         title.setFont(QFont(FONT_FAMILY, 24, QFont.Bold))
+        title.setAlignment(Qt.AlignCenter)
         title.setStyleSheet(f"color: {COLOR_BLACK};")
         card_layout.addWidget(title)
 
-        # --- 1. DONOR'S NAME (Mandatory) ---
-        lbl_name = QLabel(f'Donor\'s Name <span style="color: {COLOR_RED};">*</span>')
-        lbl_name.setTextFormat(Qt.RichText)
-        lbl_name.setFont(QFont(FONT_FAMILY, 14, QFont.Bold))
-        
-        self.input_name = QLineEdit()
-        self.input_name.setPlaceholderText("donor's name")
-        self.input_name.setStyleSheet(INPUT_STYLE_DEFAULT)
-        
-        card_layout.addWidget(lbl_name)
-        card_layout.addWidget(self.input_name)
-
-        # --- 2. DONOR'S STRATEGY (Mandatory) ---
-        # Anforderung: Dropdown Menü
-        lbl_strategy = QLabel(f'Donor\'s Strategy <span style="color: {COLOR_RED};">*</span>')
-        lbl_strategy.setTextFormat(Qt.RichText)
-        lbl_strategy.setFont(QFont(FONT_FAMILY, 14, QFont.Bold))
-        
-        self.combo_strategy = QComboBox()
-        self.combo_strategy.addItem("donor's strategy") # Index 0 ist der Placeholder
-        self.combo_strategy.addItems(["Environmental Sustainability", "Education & Youth", "Healthcare Access", "Poverty Alleviation"])
-        self.combo_strategy.setStyleSheet(INPUT_STYLE_DEFAULT)
-        
-        card_layout.addWidget(lbl_strategy)
-        card_layout.addWidget(self.combo_strategy)
-
-        # --- 3. MATCH THRESHOLD CONTROL (Optional) ---
-        lbl_threshold = QLabel('Match Threshold Control')
-        lbl_threshold.setFont(QFont(FONT_FAMILY, 14, QFont.Bold))
-        
-        self.input_threshold = QLineEdit()
-        self.input_threshold.setPlaceholderText("75% in default")
-        self.input_threshold.setValidator(QIntValidator(0, 100)) # Nur Zahlen von 0-100 erlaubt
-        self.input_threshold.setStyleSheet(INPUT_STYLE_DEFAULT)
-        
-        card_layout.addWidget(lbl_threshold)
-        card_layout.addWidget(self.input_threshold)
-
-        # --- 4. NGO BUTTONS ---
-        ngo_btn_layout = QHBoxLayout()
-        
+        # The Two Main Buttons
         self.btn_manage_ngos = QPushButton("Manage NGOs")
+        self.btn_manage_donors = QPushButton("Manage Donors")
         
         button_style = f"""
             QPushButton {{
@@ -337,28 +322,30 @@ class HIGGSApp(QMainWindow):
                 color: {COLOR_BLACK};
                 border: 2px solid {COLOR_GREY};
                 border-radius: 8px;
-                padding: 10px;
+                padding: 15px;
                 font-weight: bold;
+                font-size: 16px;
             }}
             QPushButton:hover {{ background-color: {COLOR_GREY}; }}
         """
 
-        self.btn_manage_ngos.setStyleSheet(button_style)
+        for btn in [self.btn_manage_ngos, self.btn_manage_donors]:
+            btn.setStyleSheet(button_style)
+            btn.setCursor(Qt.PointingHandCursor)
+            card_layout.addWidget(btn)
 
-        # Connect the buttons to the new management functions
+        # Connections
         self.btn_manage_ngos.clicked.connect(self.open_ngo_manager)
-        
-        ngo_btn_layout.addWidget(self.btn_manage_ngos)
-        card_layout.addLayout(ngo_btn_layout)
+        self.btn_manage_donors.clicked.connect(self.open_donor_manager)
 
-        # --- 5. GENERATE BUTTON ---
-        self.btn_generate = QPushButton("Generate AI matches")
+        # Generate Button
+        self.btn_generate = QPushButton("Generate matches")
+        self.btn_generate.setFixedHeight(55)
         self.btn_generate.setStyleSheet(f"""
             QPushButton {{
                 background-color: {COLOR_RED};
                 color: {COLOR_WHITE};
-                border-radius: 8px;
-                padding: 15px;
+                border-radius: 12px;
                 font-weight: bold;
                 font-size: 16px;
             }}
@@ -371,6 +358,10 @@ class HIGGSApp(QMainWindow):
         main_layout.addWidget(card)
         return page
 
+    def open_donor_manager(self):
+        self.donor_dialog = ManageDonorDialog(self)
+        self.donor_dialog.exec()
+
     def create_placeholder_result_page(self):
         """Eine einfache Dummy-Seite, um den erfolgreichen Sprung zu demonstrieren."""
         page = QWidget()
@@ -382,39 +373,39 @@ class HIGGSApp(QMainWindow):
         return page
 
     def handle_generate(self):
-        """Überprüft die Pflichtfelder und startet den Ladevorgang."""
-        is_valid = True
+        donor_name = ""
+        donor_strategy = ""
+
+        try:
+            response = requests.get("http://127.0.0.1:8000/api/donors")
+            if response.status_code ==200:
+                donors = response.json()
+                if not donors:
+                    QMessageBox.warning(self, "No Donors", "Please add at least one donor to generate matches.")
+                    return
+                latest_donor = donors[-1]
+                donor_name = latest_donor.get("name", "Unknown")
+                donor_strategy = latest_donor.get("strategy", "")
+
+            else:
+                QMessageBox.warning(self, "Error", f"Failed to fetch donors")
+                return
+            
+        except Exception as e:
+            QMessageBox.critical(self, "Connection Error", f"Could not connect to backend: {str(e)}")
+            return      
         
-        # 1. Frontend Check: Mandatory Fields
-        name = self.input_name.text().strip()
-        strategy_idx = self.combo_strategy.currentIndex()
-
-        # Reset Styles
-        self.input_name.setStyleSheet(INPUT_STYLE_DEFAULT)
-        self.combo_strategy.setStyleSheet(INPUT_STYLE_DEFAULT)
-
-        # Falls Name fehlt -> Roter Rand
-        if not name:
-            self.input_name.setStyleSheet(INPUT_STYLE_ERROR)
-            is_valid = False
-
-        # Falls Strategy auf Index 0 (Placeholder) steht -> Roter Rand
-        if strategy_idx == 0:
-            self.combo_strategy.setStyleSheet(INPUT_STYLE_ERROR)
-            is_valid = False
-
-        # 2. Wenn nicht valide: Warnung und Abbruch
-        if not is_valid:
-            # Rote Rahmen sind gesetzt, wir brechen hier ab.
-            return
+        # send the input data to the backend for AI processing
+        payload = { "donor_name": donor_name, "donor_strategy": donor_strategy} 
 
         # 3. Wenn valide: Lade-Dialog anzeigen
-        self.loading_dialog = LoadingDialog(self)
+        self.loading_dialog = LoadingDialog(payload,self)
         self.loading_dialog.start_loading()
         
         # exec() pausiert das Hauptfenster, bis der Dialog fertig ist
         if self.loading_dialog.exec(): 
             # 4. If successful: Jump to result page
+            print("Successfully received data from Backend:", self.loading_dialog.result_data)
             self.stack.setCurrentIndex(1)
         else:
             # If failed: Display dialogue (Hier simuliert, falls der Dialog abgebrochen würde)
@@ -424,16 +415,15 @@ class HIGGSApp(QMainWindow):
         self.dialog = ManageNGODialog(self)
         self.dialog.exec()
 
-if __name__ == "__main__":
-    app = QApplication(sys.argv)
-    window = HIGGSApp()
-    window.show()
-    sys.exit(app.exec())
+
 
 class LoadingDialog(QDialog):
     """Der Dialog, der während der 'Backend'-Analyse angezeigt wird."""
-    def __init__(self, parent=None):
+    def __init__(self, payload, parent=None):
         super().__init__(parent)
+        self.payload = payload
+        self.result_data = None # to store the result from backend
+
         self.setWindowTitle("Loading")
         self.setFixedSize(400, 200)
         self.setStyleSheet(f"background-color: {COLOR_WHITE}; border-radius: 16px;")
@@ -462,14 +452,143 @@ class LoadingDialog(QDialog):
         self.timer.timeout.connect(self.update_progress)
         self.step = 0
 
+        # Backend Worker Thread starten
+        self.worker = MatchWorker(self.payload)
+        self.worker.finished_signal.connect(self.on_success)
+        self.worker.error_signal.connect(self.on_error)
+
     def start_loading(self):
         self.step = 0
         self.progress.setValue(0)
         self.timer.start(30) # Alle 30ms updaten
+        self.worker.start() #start the backend worker thread
 
     def update_progress(self):
+     if self.step < 90:
         self.step += 1
-        self.progress.setValue(self.step)
-        if self.step >= 100:
-            self.timer.stop()
-            self.accept() # Schließt den Dialog erfolgreich
+        self.progress.setValue(self.step) # at most 90% to keep some suspense until backend finishes
+
+    def on_success(self, data):
+        self.timer.stop()
+        self.progress.setValue(100) # reach 100% on success
+        self.result_data = data # store the backend result for later use
+        self.accept() # close the dialog with success
+    
+    def on_error(self, error_msg):
+        self.timer.stop()
+        QMessageBox.critical(self, "Matchmaking Failed", error_msg)
+        self.reject() # close the dialog with failure
+
+# Manage Donor 
+class ManageDonorDialog(QDialog):
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        self.setWindowTitle("Add & Manage Donors")
+        self.setMinimumSize(450, 650)
+        self.setStyleSheet(f"background-color: {COLOR_WHITE}; border-radius: 12px;")
+        
+        layout = QVBoxLayout(self)
+        layout.setSpacing(10)
+
+        # Add donor form
+        layout.addWidget(QLabel("<b>Add New Donor Profile</b>"))
+        
+        self.name_input = QLineEdit()
+        self.name_input.setPlaceholderText("Donor Name")
+        self.name_input.setStyleSheet(INPUT_STYLE_DEFAULT)
+        layout.addWidget(self.name_input)
+
+        self.strategy_input = QLineEdit()
+        self.strategy_input.setPlaceholderText("Donor Strategy")
+        self.strategy_input.setStyleSheet(INPUT_STYLE_DEFAULT)
+        layout.addWidget(self.strategy_input)
+
+        self.legal_input = QLineEdit()
+        self.legal_input.setPlaceholderText("Legal Form")
+        self.legal_input.setStyleSheet(INPUT_STYLE_DEFAULT)
+        layout.addWidget(self.legal_input)
+        
+        btn_add = QPushButton("Save Donor to Database")
+        btn_add.setStyleSheet(f"background-color: {COLOR_GREEN}; color: white; padding: 12px; font-weight: bold; border-radius: 8px;")
+        btn_add.clicked.connect(self.add_donor_to_db)
+        layout.addWidget(btn_add)
+
+        layout.addWidget(QLabel("<br><b>Existing Donor Database:</b>"))
+        
+        # List of donors with multiple columns
+        self.donor_list = QTreeWidget()
+        self.donor_list.setColumnCount(3)
+        self.donor_list.setHeaderLabels(["Name", "Strategy", "Legal Form"])
+        self.donor_list.setStyleSheet(f"""
+            QHeaderView::section {{ background-color: {COLOR_GREY}; padding: 4px; border: 1px solid {COLOR_WHITE}; font-weight: bold; color: {COLOR_BLACK}; }}
+            QTreeWidget {{ border: 1px solid {COLOR_GREY}; border-radius: 8px; background-color: {COLOR_WHITE}; color: {COLOR_BLACK}; font-family: '{FONT_FAMILY}'; font-size: 13px; }}
+        """)
+        layout.addWidget(self.donor_list)
+        
+        btn_del = QPushButton("Delete Selected Donor")
+        btn_del.setStyleSheet(f"background-color: {COLOR_RED}; color: white; padding: 10px; font-weight: bold; border-radius: 8px;")
+        btn_del.clicked.connect(self.delete_selected_donor)
+        layout.addWidget(btn_del)
+
+        self.refresh_data()
+
+    def add_donor_to_db(self):
+        name = self.name_input.text().strip()
+        if not name:
+            QMessageBox.warning(self, "Input Error", "Donor Name is mandatory!")
+            return
+
+        payload = {"name": name, "strategy": self.strategy_input.text().strip() or None, "legal_form": self.legal_input.text().strip() or None}
+        try:
+            response = requests.post("http://127.0.0.1:8000/api/donors", json=payload)
+            if response.status_code == 200:
+                QMessageBox.information(self, "Success", "Donor Added!")
+                self.name_input.clear(); self.strategy_input.clear(); self.legal_input.clear()
+                self.refresh_data()
+            else:
+                QMessageBox.warning(self, "Error", response.json().get("detail", "Failed to add Donor."))
+        except Exception as e:
+            print(f"Add error: {e}")
+            QMessageBox.critical(self, "Connection Error", str(e))
+
+    def refresh_data(self):
+        self.donor_list.clear()
+        try:
+            response = requests.get("http://127.0.0.1:8000/api/donors")
+            if response.status_code == 200:
+                for donor in response.json():
+                    item = QTreeWidgetItem([donor.get('name', ''), donor.get('strategy', 'N/A'), donor.get('legal_form', 'N/A')])
+                    item.setData(0, Qt.UserRole, donor['id']) 
+                    self.donor_list.addTopLevelItem(item)
+        except Exception as e:
+            pass
+
+    def delete_selected_donor(self):
+        current_item = self.donor_list.currentItem()
+        if not current_item:
+            QMessageBox.warning(self, "Selection Error", "Please select a Donor to delete.")
+            return
+
+        # Retrieve the ID from the selected row
+        donor_id = current_item.data(0, Qt.UserRole)
+        
+        try:
+            # Send the DELETE request to the new backend endpoint
+            response = requests.delete("http://127.0.0.1:8000/api/donors", json={"ids": [donor_id]})
+            
+            if response.status_code == 200:
+                QMessageBox.information(self, "Deleted", "Donor removed successfully.")
+                self.refresh_data()
+            else:
+                # If the backend returns an error (like 404 Not Found), show it!
+                error_msg = response.json().get("detail", "Unknown error")
+                QMessageBox.warning(self, "Error", f"Failed to delete Donor: {error_msg} (Code: {response.status_code})")
+        except Exception as e:
+            print(f"Delete error: {e}")
+            QMessageBox.critical(self, "Connection Error", f"Could not connect to backend: {str(e)}")
+
+if __name__ == "__main__":
+    app = QApplication(sys.argv)
+    window = HIGGSApp(None)
+    window.show()
+    sys.exit(app.exec())
