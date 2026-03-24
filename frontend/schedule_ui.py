@@ -149,7 +149,7 @@ def get_rows_cols_dict(DAY1: datetime):
 
     cur = START_DAY1
     result = {} # time -> day, column
-    row = 0
+    row = 1
     col = 1
     while cur:
         print(cur)
@@ -157,7 +157,7 @@ def get_rows_cols_dict(DAY1: datetime):
         cur = update_time_slot(cur, end1=END_DAY1, end2=END_DAY2, start1=START_DAY1, start2=START_DAY2)
         if cur == START_DAY2:
             col = 2
-            row = 0
+            row = 1
         else:
             row = row + 1
     return result
@@ -168,7 +168,7 @@ class Schedule(QScrollArea):
 
         schedule_content = QWidget()
         self.schedule_grid = QGridLayout()
-
+        self.schedule_grid.setSpacing(5)
         schedule_content.setLayout(self.schedule_grid)
         self.setWidgetResizable(True)
         self.setWidget(schedule_content)
@@ -186,8 +186,23 @@ class Schedule(QScrollArea):
             lbl = QLabel("There are no matches for this donor.")
             self.schedule_grid.addWidget(lbl, 0, 0, alignment=Qt.AlignmentFlag.AlignCenter)
         else:
-            # first make times in column 0 
-            r = 0
+            # make tabs that say day 1 and day 2
+            time_heading_lbl = QLabel("MEETING TIME")
+            time_heading_lbl.setAlignment(Qt.AlignmentFlag.AlignCenter)
+            day_1_lbl = QLabel("DAY 1")
+            day_1_lbl.setAlignment(Qt.AlignmentFlag.AlignCenter)
+            day_2_lbl = QLabel("DAY 2")
+            day_2_lbl.setAlignment(Qt.AlignmentFlag.AlignCenter)
+            self.schedule_grid.addWidget(time_heading_lbl, 0, 0)
+            self.schedule_grid.addWidget(day_1_lbl, 0, 1)
+            self.schedule_grid.addWidget(day_2_lbl, 0, 2)
+
+            time_heading_lbl.setProperty("styling", "timeslotheading")
+            day_1_lbl.setProperty("styling", "scheduleheading")
+            day_2_lbl.setProperty("styling", "scheduleheading")
+
+            # make times in column 0 
+            r = 1
             times_set = {t.time() for t in self.time_mapping}
             sorted_times = sorted(list(times_set))
             for t in sorted_times:
@@ -195,6 +210,8 @@ class Schedule(QScrollArea):
                 t_end = (t_dt + timedelta(minutes=13)).time()
                 meeting_time = str(t.strftime("%H:%M") + " - " + t_end.strftime("%H:%M"))
                 time_lbl = QLabel(meeting_time)
+                time_lbl.setProperty("styling", "timeslotlbl")
+                time_lbl.setWordWrap(True)
                 self.schedule_grid.addWidget(time_lbl, r, 0)
                 r = r + 1
 
@@ -203,4 +220,6 @@ class Schedule(QScrollArea):
                 meeting_time_dt = datetime.strptime(meeting["meeting_time"], "%Y-%m-%d %H:%M:%S")
                 row = self.time_mapping[meeting_time_dt][0]
                 col = self.time_mapping[meeting_time_dt][1]
+                name_lbl.setProperty("styling", "nameslotlbl")
+                name_lbl.setWordWrap(True)
                 self.schedule_grid.addWidget(name_lbl, row, col)

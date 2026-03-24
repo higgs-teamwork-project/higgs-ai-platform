@@ -79,8 +79,8 @@ QTableView[styling="matches"] QHeaderView::section {
 }
 
 QTabBar::tab {
-    background: #FFFFFF;
-    border: 2px solid #d4d4d4;
+    background: #d4d4d4;
+    border: 2px solid #b1b4b8;
     border-bottom-color: #b1b4b8; /* same as the pane color */
     border-top-left-radius: 4px;
     border-top-right-radius: 4px;
@@ -91,7 +91,7 @@ QTabBar::tab {
 }
 
 QTabBar::tab:selected, QTabBar::tab:hover {
-    background: #E9E8E8;
+    background: #FFFFFF;
 }
 
 QTabBar::tab:selected {
@@ -102,3 +102,38 @@ QTabBar::tab:selected {
 QTabBar::tab:!selected {
     margin-top: 2px; /* make non-selected tabs look smaller */
 }
+
+QLabel[styling="nameslotlbl"]{
+    background: #FFFFFF;
+    padding: 2px;
+    border: 2px solid #f7f4f4;
+    border-radius: 8px;
+    font-size: 12px;
+}
+
+QLabel[styling="timeslotlbl"]{
+    background: #C12250;
+    padding: 2px;
+    border: 2px solid #af1f48;
+    border-radius: 8px;
+    font-size: 12px;
+    font-weight: bold;
+    color: #FFFFFF;
+}
+
+QLabel[styling="timeslotheading"]{
+    background: #af1f48;
+    padding: 2px;
+    border-radius: 4px;
+    font-size: 14px;
+    font-weight: bold;
+    color: #FFFFFF;
+}
+
+QLabel[styling="scheduleheading"]{
+    background: #FFFFFF;
+    padding: 2px;
+    border-radius: 4px;
+    font-size: 14px;
+}
+

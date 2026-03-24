@@ -161,15 +161,13 @@ style = """
             background-color: #E9E8E8;
         }
 
-        /* Vertical Scrollbar */
         QScrollBar:vertical {
             border: none;
-            background: #d4d4d4; /* Light grey track */
-            width: 5px;          /* Thinner, modern width */
+            background: #d4d4d4; 
+            width: 5px;        
             margin: 0px;
         }
 
-        /* Horizontal Scrollbar */
         QScrollBar:horizontal {
             border: none;
             background: #d4d4d4;
@@ -177,21 +175,17 @@ style = """
             margin: 0px;
         }
 
-        /* The Handle (The moving part) */
         QScrollBar::handle:vertical, QScrollBar::handle:horizontal {
-            background: #bebebe; /* Medium grey handle */
+            background: #bebebe; 
             min-height: 5px;
             min-width: 20px;
-            border-radius: 10px;  /* Rounded ends */
+            border-radius: 10px;  
         }
 
-        /* Handle hover state */
         QScrollBar::handle:vertical:hover, QScrollBar::handle:horizontal:hover {
-            background: #94a3b8; /* Darker grey on hover */
+            background: #94a3b8; 
         }
 
-        /* Remove the Arrows (Buttons at the top/bottom) */
-        /* Modern UIs rarely use these; removing them makes it look much cleaner */
         QScrollBar::add-line:vertical, QScrollBar::sub-line:vertical,
         QScrollBar::add-line:horizontal, QScrollBar::sub-line:horizontal {
             border: none;
@@ -210,41 +204,46 @@ style = """
             font-weight: bold;
         }
 
-        /* The Background Track (Top and Bottom of the handle) */
         QScrollBar::add-page:vertical, QScrollBar::sub-page:vertical,
         QScrollBar::add-page:horizontal, QScrollBar::sub-page:horizontal {
             background: none;
         }
+
+        QLabel[styling="nameslotlbl"]{
+            background: #FFFFFF;
+            padding: 2px;
+            border: 2px solid #f7f4f4;
+            border-radius: 8px;
+            font-size: 12px;
+        }
+
+        QLabel[styling="timeslotlbl"]{
+            background: #C12250;
+            padding: 2px;
+            border: 2px solid #af1f48;
+            border-radius: 8px;
+            font-size: 12px;
+            font-weight: bold;
+            color: #FFFFFF;
+        }
+
+        QLabel[styling="timeslotheading"]{
+            background: #af1f48;
+            padding: 2px;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: bold;
+            color: #FFFFFF;
+        }
+
+        QLabel[styling="scheduleheading"]{
+            background: #FFFFFF;
+            padding: 2px;
+            border-radius: 4px;
+            font-size: 14px;
+            font-weight: bold;
+        }
         """
-"""
-
-generating schedule
-should regenerate schedule everytime new matches added
-should generate schedule at the start 
-
-generate schedule should update db after processing each donor
-when you click on a donor, like w matches, retrieve schedule from DB
-exact same logic as generate matches then
-
-pseudo code
-
-schedule = (ngo, time) -> donors , for all donors
-matched = (donor, ngo) -> time , pairs that already have a meeting
-for each donor
-for each ngo donor is matched with
-if (donor, ngo) is in matched skip
-else
-current slot = last slot for donor + 13 (with conditions for days)
-while not found
-if (ngo, time) exists in schedule increment current slot by 13 (w. conditions)
-else add to matches, schedule and write to db. set found as true.
-
-
-
-
-"""
-
-
 
 class GenerateOutputWindow(QMainWindow):
     def __init__(self):
@@ -294,9 +293,6 @@ class GenerateOutputWindow(QMainWindow):
 
     def change_detail_window(self, current, previous):
         # add a new detail window to RHS
-        if not previous.isValid():
-            return
-
         if current.isValid():
             if self.current_detail:
                 self.details_layout.removeWidget(self.current_detail)

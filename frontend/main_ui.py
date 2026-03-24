@@ -86,17 +86,13 @@ if __name__ == "__main__":
     app = QApplication(sys.argv)
     window = LoginWindow()
     ## FOR TESTING PURPOSES
-
+    # window = GenerateOutputWindow()
     style = loadstylesheet()
     print(style)
     if style:
         app.setStyleSheet(style)
     else:
         print("No stylesheet")
-
-
-    ##window = GenerateOutputWindow()
-
 
     window.show()
     sys.exit(app.exec())
