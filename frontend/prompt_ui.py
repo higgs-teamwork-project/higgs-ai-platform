@@ -286,9 +286,8 @@ class ManageDonorDialog(QDialog):
             QMessageBox.critical(self, "Connection Error", f"Could not connect to backend: {str(e)}")
 
 class HIGGSApp(QMainWindow):
-    def __init__(self,dashboard_window=None):
+    def __init__(self):
         super().__init__()
-        self.dashboard_window = dashboard_window
 
         # Figma Desktop Frame Size
         self.setWindowTitle("HIGGS AI Matchmaking")

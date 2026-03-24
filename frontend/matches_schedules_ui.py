@@ -27,98 +27,6 @@ Donors (from donor input page) on LHS
 Generated matches + schedule on RHS
 """
 # top level style sheet for this page.
-style = """
-        QWidget{
-            background-color: #E9E8E8;
-        }
-
-        QScrollBar:vertical {
-            border: none;
-            background: #d4d4d4; 
-            width: 5px;        
-            margin: 0px;
-        }
-
-        QScrollBar:horizontal {
-            border: none;
-            background: #d4d4d4;
-            height: 5px;
-            margin: 0px;
-        }
-
-        QScrollBar::handle:vertical, QScrollBar::handle:horizontal {
-            background: #bebebe; 
-            min-height: 5px;
-            min-width: 20px;
-            border-radius: 10px;  
-        }
-
-        QScrollBar::handle:vertical:hover, QScrollBar::handle:horizontal:hover {
-            background: #94a3b8; 
-        }
-
-        QScrollBar::add-line:vertical, QScrollBar::sub-line:vertical,
-        QScrollBar::add-line:horizontal, QScrollBar::sub-line:horizontal {
-            border: none;
-            background: none;
-            width: 0px;
-            height: 0px;
-        }
-
-        QPushButton[styling="filled"]{
-            margin: 5px; 
-            color: #FFFFFF; 
-            border-radius: 3px; 
-            background-color: #C12250;   
-            padding: 10px 10px;
-            font-size: 16px;   
-            font-weight: bold;
-        }
-
-        QScrollBar::add-page:vertical, QScrollBar::sub-page:vertical,
-        QScrollBar::add-page:horizontal, QScrollBar::sub-page:horizontal {
-            background: none;
-        }
-
-        QLabel[styling="nameslotlbl"]{
-            background: #FFFFFF;
-            padding: 2px;
-            border: 2px solid #f7f4f4;
-            border-radius: 8px;
-            font-size: 12px;
-        }
-
-        QLabel[styling="timeslotlbl"]{
-            background: #C12250;
-            padding: 2px;
-            border: 2px solid #af1f48;
-            border-radius: 8px;
-            font-size: 12px;
-            font-weight: bold;
-            color: #FFFFFF;
-        }
-
-        QLabel[styling="timeslotheading"]{
-            background: #af1f48;
-            padding: 2px;
-            border-radius: 8px;
-            font-size: 14px;
-            font-weight: bold;
-            color: #FFFFFF;
-        }
-
-        QLabel[styling="scheduleheading"]{
-            background: #FFFFFF;
-            padding: 2px;
-            border-radius: 4px;
-            font-size: 14px;
-            font-weight: bold;
-        }
-
-        QWidget[styling="mainnavbar"]{
-            background-color: #FFFFFF;
-        }
-        """
 
 class MatchesTabView(QWidget):
     def __init__(self, donor_id):
@@ -290,7 +198,6 @@ class GenerateOutputWindow(QMainWindow):
 
         donors_table_background = QWidget()
         donors_table_background_layout = QVBoxLayout()
-        donors_table_background.setStyleSheet(style)
 
         self.donors_table = DonorsTable()
         self.donors_table.donor_table_view.selectionModel().currentRowChanged.connect(self.change_detail_window)
@@ -300,7 +207,6 @@ class GenerateOutputWindow(QMainWindow):
         self.main_view.setStretchFactor(0,0)
 
         self.donor_details_panel = QWidget()
-        self.donor_details_panel.setStyleSheet(style)
         self.details_layout = QVBoxLayout()
         self.donor_details_panel.setLayout(self.details_layout)
         self.main_view.addWidget(self.donor_details_panel)

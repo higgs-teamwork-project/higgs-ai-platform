@@ -19,6 +19,15 @@ QPushButton[styling="filled"]{
     font-weight: bold;
 }
 
+QPushButton[styling="outline"]::hover{
+    background-color: #C12250;
+    color: #FFFFFF;
+}
+
+QPushButton[styling="filled"]::hover{
+    background-color: #ad1e47;
+}
+
 QLabel[styling="titleLabel"]{
     font-size: 28px; 
     font-weight: bold; 
@@ -227,5 +236,21 @@ QPushButton[styling="whitebtn"]{
 }
 
 QPushButton[styling="whitebtn"]::hover{
-    background-color: #a31a41
+    background-color: #a31a41;
+}
+
+.QSplitter::handle {
+    background-color: #FFFFFF; 
+}
+
+.QSplitter::handle:hover {
+    background-color: #C12250; 
+}
+
+.QSplitter[orientation="1"]::handle {
+    width: 4px;
+}
+
+.QSplitter[orientation="2"]::handle {
+    height: 4px;
 }

@@ -1,13 +1,12 @@
 # frontend/settings_ui.py
 import sys
-from PySide6.QtWidgets import (QApplication, QWidget, QVBoxLayout, QHBoxLayout, 
+from PySide6.QtWidgets import (QApplication, QMainWindow, QWidget, QVBoxLayout, QHBoxLayout, 
                                QLabel, QPushButton, QSpinBox, QDialog)
 from PySide6.QtCore import Qt
 
-class SettingsWindow(QWidget):
-    def __init__(self, parent_window=None):
+class SettingsWindow(QMainWindow):
+    def __init__(self):
         super().__init__()
-        self.parent_window = parent_window 
         
         self.setWindowTitle("HIGGS AI Platform - Settings")
         self.resize(700, 500)
@@ -26,6 +25,8 @@ class SettingsWindow(QWidget):
                 font-family: -apple-system, BlinkMacSystemFont, 'Inter', 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; 
             }}
         """)
+
+        central_widget = QWidget()
 
         main_layout = QVBoxLayout()
         main_layout.setContentsMargins(40, 50, 40, 40)
@@ -128,15 +129,14 @@ class SettingsWindow(QWidget):
             }}
             QPushButton:hover {{ text-decoration: underline; }}
         """)
-        if self.parent_window:
-            self.back_btn.clicked.connect(self.go_back)
+        self.back_btn.clicked.connect(self.go_back)
 
         bottom_layout = QHBoxLayout()
         bottom_layout.addWidget(self.back_btn, alignment=Qt.AlignCenter)
         main_layout.addLayout(bottom_layout)
 
-        self.setLayout(main_layout)
-
+        central_widget.setLayout(main_layout)
+        self.setCentralWidget(central_widget)
   
     # styling spinboxes
     def _style_ios_spinbox(self, spinbox, show_buttons=False):
@@ -234,9 +234,11 @@ class SettingsWindow(QWidget):
         msg_dialog.exec()
 
     def go_back(self):
+        from dashboard_ui import DashboardWindow
         self.hide()
-        if self.parent_window:
-            self.parent_window.show()
+        dashboard = DashboardWindow()
+        dashboard.show()
+
 
 if __name__ == "__main__":
     app = QApplication(sys.argv)
