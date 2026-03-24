@@ -2,13 +2,6 @@ import os
 import sys
 import PySide6
 
-# --- MAC REPARATUR-BLOCK ---
-# Damit dein M4 Mac die Grafik-Plugins zuverlässig findet
-dirname = os.path.dirname(PySide6.__file__)
-plugin_path = os.path.join(dirname, 'Qt', 'plugins', 'platforms')
-os.environ['QT_QPA_PLATFORM_PLUGIN_PATH'] = plugin_path
-# ---------------------------
-
 from PySide6.QtWidgets import (QApplication, QMainWindow, QWidget, QVBoxLayout, 
                              QHBoxLayout, QLabel, QLineEdit, QPushButton, 
                              QComboBox, QProgressBar, QStackedWidget, QDialog,

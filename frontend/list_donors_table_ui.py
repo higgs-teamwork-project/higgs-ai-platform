@@ -28,16 +28,6 @@ class DonorsTableModel(QAbstractTableModel):
     def __init__(self):
         super().__init__()
         self._data = self.populate_donor_list()
-        #self._data = self.test_populate()
-
-    def test_populate(self):
-        data = [
-            ["1", "ABC", "Stuff1"],
-            ["2", "CDE", "Stuff2"],
-            ["3", "EFG", "Stuff3"],
-            ["4", "EFG", "Stuff4"]
-        ]
-        return data
 
     def populate_donor_list(self):
         try:
@@ -116,47 +106,6 @@ class DonorsTable(QWidget):
 
     def get_data(self, row):
         return self.donor_table_model._data[row]
-
-# class GenerateMatchesBtn(QPushButton):
-#     def __init__(self):
-#         super().__init__(self, "Generate Matches")
-#         """
-#         Generate matches button
-#         """
-#         self.generate_match_button.clicked.connect(self.generate_match)
-#         self.generate_match_button.setProperty("styling", "filled")
-
-    ## to generate matches 
-    # def generate_match(self):
-    #     if self.donor_table_view.selectionModel().hasSelection():
-    #         row_index = self.donor_table_view.selectionModel().selectedRows()[0].row()
-    #         data = self.donor_table_model._data[row_index]
-    #         print(data)
-    #         try: 
-
-    #             # response = requests.post("http://127.0.0.1:8000/api/matchmaking/generate", json=payload) 
-    #             # # get json as dictionary 
-    #             # data = response.json()
-    #             # print(data["matches"])
-
-    #             response = requests.get(f"http://127.0.0.1:8000/api/donors/{data[0]}/recommendations?top_k=10&save_matches=False") # FIX: CHANGE TO TRUE LTR 
-    #             data = response.json()
-    #             print(data["recommendations"])
-
-    #             ## parse recommendation data
-    #             parse_data = [[m["ngo_id"], m["ngo"]["name"], m["ngo"]["strategy"], m["score"]] for m in data["recommendations"]]
-    #             print(parse_data)
-
-    #         except Exception as e:
-    #             print(f"Error in generating matches: {e}")
-    #             return
-    #     else:
-    #         QMessageBox.critical(self, "No Row Selected", "Please select a row in the donor table to generate matches")
-    #         return
-        
-    # ## load matches page. pass in matches that have been generated + donor data of selected donor.
-    # def load_matches_page(self):
-    #     return
 
 
 

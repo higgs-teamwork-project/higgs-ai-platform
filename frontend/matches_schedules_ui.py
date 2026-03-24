@@ -1,6 +1,4 @@
-from PySide6.QtCore import (Qt,
-                            QAbstractTableModel)
-
+from PySide6.QtCore import (Qt)
 from PySide6.QtWidgets import (QWidget,
                                QSplitter,
                                QMainWindow,
@@ -16,6 +14,7 @@ from load_style_ui import loadstylesheet
 from list_donors_table_ui import DonorsTableModel, DonorsTable
 from show_matches_table_ui import MatchesTable
 from schedule_ui import generate_schedule, Schedule
+from navbar_ui import HNavBar
 from datetime import datetime, date, time 
 import sys
 
@@ -24,6 +23,99 @@ import sys
 Donors (from donor input page) on LHS
 Generated matches + schedule on RHS
 """
+# top level style sheet for this page.
+style = """
+        QWidget{
+            background-color: #E9E8E8;
+        }
+
+        QScrollBar:vertical {
+            border: none;
+            background: #d4d4d4; 
+            width: 5px;        
+            margin: 0px;
+        }
+
+        QScrollBar:horizontal {
+            border: none;
+            background: #d4d4d4;
+            height: 5px;
+            margin: 0px;
+        }
+
+        QScrollBar::handle:vertical, QScrollBar::handle:horizontal {
+            background: #bebebe; 
+            min-height: 5px;
+            min-width: 20px;
+            border-radius: 10px;  
+        }
+
+        QScrollBar::handle:vertical:hover, QScrollBar::handle:horizontal:hover {
+            background: #94a3b8; 
+        }
+
+        QScrollBar::add-line:vertical, QScrollBar::sub-line:vertical,
+        QScrollBar::add-line:horizontal, QScrollBar::sub-line:horizontal {
+            border: none;
+            background: none;
+            width: 0px;
+            height: 0px;
+        }
+
+        QPushButton[styling="filled"]{
+            margin: 5px; 
+            color: #FFFFFF; 
+            border-radius: 3px; 
+            background-color: #C12250;   
+            padding: 10px 10px;
+            font-size: 16px;   
+            font-weight: bold;
+        }
+
+        QScrollBar::add-page:vertical, QScrollBar::sub-page:vertical,
+        QScrollBar::add-page:horizontal, QScrollBar::sub-page:horizontal {
+            background: none;
+        }
+
+        QLabel[styling="nameslotlbl"]{
+            background: #FFFFFF;
+            padding: 2px;
+            border: 2px solid #f7f4f4;
+            border-radius: 8px;
+            font-size: 12px;
+        }
+
+        QLabel[styling="timeslotlbl"]{
+            background: #C12250;
+            padding: 2px;
+            border: 2px solid #af1f48;
+            border-radius: 8px;
+            font-size: 12px;
+            font-weight: bold;
+            color: #FFFFFF;
+        }
+
+        QLabel[styling="timeslotheading"]{
+            background: #af1f48;
+            padding: 2px;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: bold;
+            color: #FFFFFF;
+        }
+
+        QLabel[styling="scheduleheading"]{
+            background: #FFFFFF;
+            padding: 2px;
+            border-radius: 4px;
+            font-size: 14px;
+            font-weight: bold;
+        }
+
+        QWidget[styling="mainnavbar"]{
+            background-color: #FFFFFF;
+        }
+        """
 
 class MatchesTabView(QWidget):
     def __init__(self, donor_id):
@@ -155,96 +247,6 @@ class SplitView(QWidget):
 
         self.main_view = QSplitter(orientation=Qt.Orientation.Horizontal, parent=self)
 
-
-style = """
-        QWidget{
-            background-color: #E9E8E8;
-        }
-
-        QScrollBar:vertical {
-            border: none;
-            background: #d4d4d4; 
-            width: 5px;        
-            margin: 0px;
-        }
-
-        QScrollBar:horizontal {
-            border: none;
-            background: #d4d4d4;
-            height: 5px;
-            margin: 0px;
-        }
-
-        QScrollBar::handle:vertical, QScrollBar::handle:horizontal {
-            background: #bebebe; 
-            min-height: 5px;
-            min-width: 20px;
-            border-radius: 10px;  
-        }
-
-        QScrollBar::handle:vertical:hover, QScrollBar::handle:horizontal:hover {
-            background: #94a3b8; 
-        }
-
-        QScrollBar::add-line:vertical, QScrollBar::sub-line:vertical,
-        QScrollBar::add-line:horizontal, QScrollBar::sub-line:horizontal {
-            border: none;
-            background: none;
-            width: 0px;
-            height: 0px;
-        }
-
-        QPushButton[styling="filled"]{
-            margin: 5px; 
-            color: #FFFFFF; 
-            border-radius: 3px; 
-            background-color: #C12250;   
-            padding: 10px 10px;
-            font-size: 16px;   
-            font-weight: bold;
-        }
-
-        QScrollBar::add-page:vertical, QScrollBar::sub-page:vertical,
-        QScrollBar::add-page:horizontal, QScrollBar::sub-page:horizontal {
-            background: none;
-        }
-
-        QLabel[styling="nameslotlbl"]{
-            background: #FFFFFF;
-            padding: 2px;
-            border: 2px solid #f7f4f4;
-            border-radius: 8px;
-            font-size: 12px;
-        }
-
-        QLabel[styling="timeslotlbl"]{
-            background: #C12250;
-            padding: 2px;
-            border: 2px solid #af1f48;
-            border-radius: 8px;
-            font-size: 12px;
-            font-weight: bold;
-            color: #FFFFFF;
-        }
-
-        QLabel[styling="timeslotheading"]{
-            background: #af1f48;
-            padding: 2px;
-            border-radius: 8px;
-            font-size: 14px;
-            font-weight: bold;
-            color: #FFFFFF;
-        }
-
-        QLabel[styling="scheduleheading"]{
-            background: #FFFFFF;
-            padding: 2px;
-            border-radius: 4px;
-            font-size: 14px;
-            font-weight: bold;
-        }
-        """
-
 class GenerateOutputWindow(QMainWindow):
     def __init__(self):
         super().__init__()
@@ -257,15 +259,7 @@ class GenerateOutputWindow(QMainWindow):
         main_layout.setSpacing(0)
         self.main_view = QSplitter(Qt.Orientation.Horizontal)
 
-        navbar_content = QWidget()
-        navbar_content.setProperty("styling", "mainnavbar")
-        nav_layout = QHBoxLayout()
-        nav_layout.addStretch()
-        navbar_content.setLayout(nav_layout)
-
-        self.nav_auth_btn = QPushButton("Logout")
-        self.nav_auth_btn.setProperty("styling", "outline")
-        nav_layout.addWidget(self.nav_auth_btn)
+        self.nav_bar = HNavBar(["dashboard", "add-orgs", "logout"], self)
 
         donors_table_background = QWidget()
         donors_table_background_layout = QVBoxLayout()
@@ -284,7 +278,7 @@ class GenerateOutputWindow(QMainWindow):
         self.donor_details_panel.setLayout(self.details_layout)
         self.main_view.addWidget(self.donor_details_panel)
 
-        main_layout.addWidget(navbar_content, alignment=Qt.AlignmentFlag.AlignTop)
+        main_layout.addWidget(self.nav_bar, alignment=Qt.AlignmentFlag.AlignTop)
         main_layout.addWidget(self.main_view, stretch=1)
         central_widget.setLayout(main_layout)
         self.setCentralWidget(central_widget)
