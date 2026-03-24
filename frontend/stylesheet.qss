@@ -39,7 +39,7 @@ QPushButton[styling="tileButton"]{
     background-color: #E9E8E8;
 }
 
-QWidget[styling="mainnavbar"]{
+HNavBar[styling="mainnavbar"]{
     background-color: #FFFFFF;
 }
 
