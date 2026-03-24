@@ -4,7 +4,9 @@ QPushButton[styling="outline"]{
     color: #C12250; 
     border: 1px solid #C12250; 
     border-radius: 3px; 
-    background-color: #FFFFFF;      
+    background-color: #FFFFFF; 
+    font-size: 14px;
+    font-weight: bold;     
 }
 
 QPushButton[styling="filled"]{
@@ -22,6 +24,12 @@ QLabel[styling="titleLabel"]{
     font-weight: bold; 
     color: #C12250; 
     margin-bottom: 20px;
+}
+
+.QWidget[styling="card"]{  
+    background-color: #FFFFFF; 
+    border-radius: 24px;
+    padding: 100px;
 }
 
 QPushButton[styling="tileButton"]{
@@ -137,3 +145,87 @@ QLabel[styling="scheduleheading"]{
     font-size: 14px;
 }
 
+.QLineEdit{
+    border: 2px solid #E9E8E8; 
+    border-radius: 8px; 
+    padding: 10px; 
+    background-color: #FFFFFF;
+    color: #000000;  
+    font-size: 14px;
+}
+
+QPushButton[styling="greenbtn"]{
+    background-color: #7EE081; 
+    color: white; 
+    padding: 12px; 
+    font-weight: bold; 
+    border-radius: 8px;    
+}
+
+.QScrollBar:vertical {
+    border: none;
+    background: #d4d4d4; 
+    width: 5px;        
+    margin: 0px;
+}
+
+.QScrollBar:horizontal {
+    border: none;
+    background: #d4d4d4;
+    height: 5px;
+    margin: 0px;
+}
+
+.QScrollBar::handle:vertical, .QScrollBar::handle:horizontal {
+    background: #bebebe; 
+    min-height: 5px;
+    min-width: 20px;
+    border-radius: 10px;  
+}
+
+.QScrollBar::handle:vertical:hover, .QScrollBar::handle:horizontal:hover {
+    background: #94a3b8; 
+}
+
+.QScrollBar::add-line:vertical, .QScrollBar::sub-line:vertical,
+.QScrollBar::add-line:horizontal, .QScrollBar::sub-line:horizontal {
+    border: none;
+    background: none;
+    width: 0px;
+    height: 0px;
+}
+
+.QScrollBar::add-page:vertical, .QScrollBar::sub-page:vertical,
+.QScrollBar::add-page:horizontal, .QScrollBar::sub-page:horizontal {
+    background: none;
+}
+
+QTreeWidget[styling="ngolisttree"]{
+    border: 1px solid #E9E8E8; 
+    border-radius: 8px; 
+    background-color: #FFFFFF;
+    color: #000000;
+    font-size: 13px;
+}
+
+QTreeWidget[styling="ngolisttree"] QHeaderView::section{
+    background-color: #E9E8E8;
+    padding: 4px;
+    border: 1px solid #FFFFFF;
+    font-weight: bold;
+    color: #000000;
+}
+
+QPushButton[styling="whitebtn"]{
+    background-color: #C12250;
+    border: 2px solid #a31a41;
+    border-radius: 8px;
+    padding: 15px;
+    font-weight: bold;
+    font-size: 16px;
+    color: #FFFFFF;
+}
+
+QPushButton[styling="whitebtn"]::hover{
+    background-color: #a31a41
+}
