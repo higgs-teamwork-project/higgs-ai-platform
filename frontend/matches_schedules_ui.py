@@ -1,4 +1,5 @@
-from PySide6.QtCore import (Qt)
+from PySide6.QtCore import (Qt,
+                            QThreadPool)
 from PySide6.QtWidgets import (QWidget,
                                QSplitter,
                                QMainWindow,
@@ -7,7 +8,8 @@ from PySide6.QtWidgets import (QWidget,
                                QHBoxLayout,
                                QPushButton,
                                QTabWidget,
-                               QMessageBox)
+                               QMessageBox,
+                               QProgressBar)
 
 import requests
 from load_style_ui import loadstylesheet
@@ -17,6 +19,7 @@ from schedule_ui import generate_schedule, Schedule
 from navbar_ui import HNavBar
 from datetime import datetime, date, time 
 import sys
+from run_api_req import RequestWorker
 
 """
 !! This is the main output window.
@@ -24,104 +27,12 @@ Donors (from donor input page) on LHS
 Generated matches + schedule on RHS
 """
 # top level style sheet for this page.
-style = """
-        QWidget{
-            background-color: #E9E8E8;
-        }
-
-        QScrollBar:vertical {
-            border: none;
-            background: #d4d4d4; 
-            width: 5px;        
-            margin: 0px;
-        }
-
-        QScrollBar:horizontal {
-            border: none;
-            background: #d4d4d4;
-            height: 5px;
-            margin: 0px;
-        }
-
-        QScrollBar::handle:vertical, QScrollBar::handle:horizontal {
-            background: #bebebe; 
-            min-height: 5px;
-            min-width: 20px;
-            border-radius: 10px;  
-        }
-
-        QScrollBar::handle:vertical:hover, QScrollBar::handle:horizontal:hover {
-            background: #94a3b8; 
-        }
-
-        QScrollBar::add-line:vertical, QScrollBar::sub-line:vertical,
-        QScrollBar::add-line:horizontal, QScrollBar::sub-line:horizontal {
-            border: none;
-            background: none;
-            width: 0px;
-            height: 0px;
-        }
-
-        QPushButton[styling="filled"]{
-            margin: 5px; 
-            color: #FFFFFF; 
-            border-radius: 3px; 
-            background-color: #C12250;   
-            padding: 10px 10px;
-            font-size: 16px;   
-            font-weight: bold;
-        }
-
-        QScrollBar::add-page:vertical, QScrollBar::sub-page:vertical,
-        QScrollBar::add-page:horizontal, QScrollBar::sub-page:horizontal {
-            background: none;
-        }
-
-        QLabel[styling="nameslotlbl"]{
-            background: #FFFFFF;
-            padding: 2px;
-            border: 2px solid #f7f4f4;
-            border-radius: 8px;
-            font-size: 12px;
-        }
-
-        QLabel[styling="timeslotlbl"]{
-            background: #C12250;
-            padding: 2px;
-            border: 2px solid #af1f48;
-            border-radius: 8px;
-            font-size: 12px;
-            font-weight: bold;
-            color: #FFFFFF;
-        }
-
-        QLabel[styling="timeslotheading"]{
-            background: #af1f48;
-            padding: 2px;
-            border-radius: 8px;
-            font-size: 14px;
-            font-weight: bold;
-            color: #FFFFFF;
-        }
-
-        QLabel[styling="scheduleheading"]{
-            background: #FFFFFF;
-            padding: 2px;
-            border-radius: 4px;
-            font-size: 14px;
-            font-weight: bold;
-        }
-
-        QWidget[styling="mainnavbar"]{
-            background-color: #FFFFFF;
-        }
-        """
 
 class MatchesTabView(QWidget):
     def __init__(self, donor_id):
         super().__init__()
         self.donor_id = donor_id
-
+        self.threadpool = QThreadPool()
         # --- layout ---
         self.tab_layout = QVBoxLayout(self)
 
@@ -137,6 +48,11 @@ class MatchesTabView(QWidget):
         self.matches_outer_layout = QVBoxLayout(self.matches_tab)    
         self.matches_tab.setLayout(self.matches_outer_layout)
 
+        self.matches_spinner = QProgressBar()
+        self.matches_spinner.setRange(0, 0)
+        self.matches_spinner.setTextVisible(False)
+        self.matches_outer_layout.addWidget(self.matches_spinner)
+
         data = self.parse_matches_table()
         self.matches_table = MatchesTable(data) # data = [] if no saved matches
         self.matches_outer_layout.addWidget(self.matches_table)
@@ -146,6 +62,7 @@ class MatchesTabView(QWidget):
         self.generate_matches_btn.clicked.connect(self.generate_match)
         self.matches_outer_layout.addWidget(self.generate_matches_btn, alignment=Qt.AlignmentFlag.AlignCenter)
 
+        self.matches_spinner.hide()
         if len(data) == 0:
             self.matches_table.hide()
         else:
@@ -162,6 +79,9 @@ class MatchesTabView(QWidget):
         # --- set up ---
         self.tab_layout.addWidget(self.tab_view)
         self.setLayout(self.tab_layout)
+
+    def return_results(self, d):
+        return d
 
     def parse_matches_table(self):
         try:
@@ -207,17 +127,32 @@ class MatchesTabView(QWidget):
             QMessageBox.critical(self, "Server Error", "Could not retrieve schedule. Please try again later.")
             return None
 
-    def generate_match(self):
+    def get_recs_req(self, id):
         try:
-            response = requests.get(f"http://127.0.0.1:8000/api/donors/{self.donor_id}/recommendations?top_k=22 &save_matches=True")
+            response = requests.get(f"http://127.0.0.1:8000/api/donors/{id}/recommendations?top_k=22 &save_matches=True")
             data = response.json()
             print(data)
-            self.load_matches_table()
-            self.make_donor_schedule(data["recommendations"])
+            return data
         except Exception as e:
             QMessageBox.critical(self, "Server Error", "Could not generate matches. Please try again later.")
             print("ERROR: "+ e)
             return None
+        
+    def handle_new_matches(self, data):
+        self.matches_spinner.hide()
+        self.load_matches_table()
+        self.make_donor_schedule(data["recommendations"])
+
+
+    def generate_match(self):
+        self.generate_matches_btn.hide()
+        self.matches_spinner.show()
+        worker = RequestWorker(
+            self.get_recs_req,
+            self.donor_id
+        )
+        worker.signals.result.connect(self.handle_new_matches)
+        self.threadpool.start(worker)
     
     def load_matches_table(self):
         self.generate_matches_btn.hide()
@@ -263,7 +198,6 @@ class GenerateOutputWindow(QMainWindow):
 
         donors_table_background = QWidget()
         donors_table_background_layout = QVBoxLayout()
-        donors_table_background.setStyleSheet(style)
 
         self.donors_table = DonorsTable()
         self.donors_table.donor_table_view.selectionModel().currentRowChanged.connect(self.change_detail_window)
@@ -273,7 +207,6 @@ class GenerateOutputWindow(QMainWindow):
         self.main_view.setStretchFactor(0,0)
 
         self.donor_details_panel = QWidget()
-        self.donor_details_panel.setStyleSheet(style)
         self.details_layout = QVBoxLayout()
         self.donor_details_panel.setLayout(self.details_layout)
         self.main_view.addWidget(self.donor_details_panel)

@@ -9,6 +9,9 @@ from PySide6.QtWidgets import (QApplication, QMainWindow, QWidget, QVBoxLayout,
 from PySide6.QtCore import Qt, QTimer, QThread, Signal
 from PySide6.QtGui import QFont, QIntValidator
 
+from load_style_ui import loadstylesheet
+from navbar_ui import HNavBar
+
 # --- DESIGN RICHTLINIEN (Aus deinen Anforderungen) ---
 COLOR_RED = "#E52C4E"
 COLOR_GREEN = "#7EE081"
@@ -17,28 +20,27 @@ COLOR_WHITE = "#FFFFFF"
 COLOR_BLACK = "#000000"
 FONT_FAMILY = "Inter"
 
-# Basis-Style für Eingabefelder (8px Radius, grauer Rand)
-INPUT_STYLE_DEFAULT = f"""
-    QLineEdit {{
-        border: 2px solid {COLOR_GREY}; 
-        border-radius: 8px; 
-        padding: 10px; 
-        background-color: {COLOR_WHITE};
-        color: {COLOR_BLACK};  
-        font-family: '{FONT_FAMILY}';
-        font-size: 14px;
-    }}
-"""
-# Style für leere Pflichtfelder (roter Rand)
-INPUT_STYLE_ERROR = f"""
-    border: 2px solid {COLOR_RED}; 
-    border-radius: 8px; 
-    padding: 10px; 
-    background-color: {COLOR_WHITE};
-    color: {COLOR_BLACK};  
-    font-family: '{FONT_FAMILY}';
-    font-size: 14px;
-"""
+# # Basis-Style für Eingabefelder (8px Radius, grauer Rand)
+# INPUT_STYLE_DEFAULT = f"""
+#     QLineEdit {{
+#         border: 2px solid {COLOR_GREY}; 
+#         border-radius: 8px; 
+#         padding: 10px; 
+#         background-color: {COLOR_WHITE};
+#         color: {COLOR_BLACK};  
+#         font-family: '{FONT_FAMILY}';
+#         font-size: 14px;
+#     }}
+# """
+# INPUT_STYLE_ERROR = f"""
+#     border: 2px solid {COLOR_RED}; 
+#     border-radius: 8px; 
+#     padding: 10px; 
+#     background-color: {COLOR_WHITE};
+#     color: {COLOR_BLACK};  
+#     font-family: '{FONT_FAMILY}';
+#     font-size: 14px;
+# """
 
 import requests
 
@@ -48,7 +50,6 @@ class ManageNGODialog(QDialog):
         super().__init__(parent)
         self.setWindowTitle("Add & Manage NGOs")
         self.setMinimumSize(450, 650)
-        self.setStyleSheet(f"background-color: {COLOR_WHITE}; border-radius: 12px;")
         
         layout = QVBoxLayout(self)
         layout.setSpacing(10)
@@ -58,26 +59,22 @@ class ManageNGODialog(QDialog):
         
         self.name_input = QLineEdit()
         self.name_input.setPlaceholderText("NGO Name")
-        self.name_input.setStyleSheet(INPUT_STYLE_DEFAULT)
         layout.addWidget(self.name_input)
 
         self.strategy_input = QLineEdit()
         self.strategy_input.setPlaceholderText("NGO Strategy")
-        self.strategy_input.setStyleSheet(INPUT_STYLE_DEFAULT)
         layout.addWidget(self.strategy_input)
 
         self.focus_input = QLineEdit()
         self.focus_input.setPlaceholderText("Focus Area")
-        self.focus_input.setStyleSheet(INPUT_STYLE_DEFAULT)
         layout.addWidget(self.focus_input)
 
         self.legal_input = QLineEdit()
         self.legal_input.setPlaceholderText("Legal Form")
-        self.legal_input.setStyleSheet(INPUT_STYLE_DEFAULT)
         layout.addWidget(self.legal_input)
         
         btn_add = QPushButton("Save NGO to Database")
-        btn_add.setStyleSheet(f"background-color: {COLOR_GREEN}; color: white; padding: 12px; font-weight: bold; border-radius: 8px;")
+        btn_add.setProperty("styling", "greenbtn")
         btn_add.clicked.connect(self.add_ngo_to_db)
         layout.addWidget(btn_add)
 
@@ -87,29 +84,11 @@ class ManageNGODialog(QDialog):
         self.ngo_list = QTreeWidget()
         self.ngo_list.setColumnCount(4)
         self.ngo_list.setHeaderLabels(["Name", "Strategy", "Focus", "Legal Form"])
-        
-        # Style the header and the list
-        self.ngo_list.setStyleSheet(f"""
-            QHeaderView::section {{
-                background-color: {COLOR_GREY};
-                padding: 4px;
-                border: 1px solid {COLOR_WHITE};
-                font-weight: bold;
-                color: {COLOR_BLACK};
-            }}
-            QTreeWidget {{
-                border: 1px solid {COLOR_GREY}; 
-                border-radius: 8px; 
-                background-color: {COLOR_WHITE};
-                color: {COLOR_BLACK};
-                font-family: '{FONT_FAMILY}';
-                font-size: 13px;
-            }}
-        """)
+        self.ngo_list.setProperty("styling", "ngolisttree")
         layout.addWidget(self.ngo_list)
         
         btn_del = QPushButton("Delete Selected NGO")
-        btn_del.setStyleSheet(f"background-color: {COLOR_RED}; color: white; padding: 10px; font-weight: bold; border-radius: 8px;")
+        btn_del.setProperty("styling", "filled")
         btn_del.clicked.connect(self.delete_selected_ngo)
         layout.addWidget(btn_del)
 
@@ -205,281 +184,13 @@ class ManageNGODialog(QDialog):
         except Exception as e:
             QMessageBox.critical(self, "Error", str(e))
 
-
-#backend communication for AI matching (Extension)
-class MatchWorker(QThread):
-    finished_signal = Signal(dict) 
-    error_signal = Signal(str)    
-
-    def __init__(self, payload):
-        super().__init__()
-        self.payload = payload
-
-    def run(self):
-        try:
-            response = requests.post("http://127.0.0.1:8000/api/matchmaking/generate", json=self.payload)
-            
-            if response.status_code == 200:
-                self.finished_signal.emit(response.json())
-            else:
-                self.error_signal.emit(f"Server Error: {response.status_code}\n{response.text}")
-                
-        except requests.exceptions.ConnectionError:
-            self.error_signal.emit("Connection Error: Could not connect to the backend. Is it running?")
-        except Exception as e:
-            self.error_signal.emit(f"Unexpected Error: {str(e)}")
-
-
-class HIGGSApp(QMainWindow):
-    def __init__(self,dashboard_window=None):
-        super().__init__()
-        self.dashboard_window = dashboard_window
-
-        # Figma Desktop Frame Size
-        self.setWindowTitle("HIGGS AI Matchmaking")
-        self.resize(1400, 1024)
-        self.setStyleSheet(f"QMainWindow {{ background-color: {COLOR_GREY}; font-family: '{FONT_FAMILY}'; }}")
-
-        # add a central widget and layout to hold the pages
-        central_widget = QWidget()
-        self.setCentralWidget(central_widget)
-
-        main_layout = QVBoxLayout(central_widget)
-        main_layout.setContentsMargins(0, 0, 0, 0)
-        main_layout.setSpacing(0)
-
-        # navigation layout (top right)
-        nav_layout = QHBoxLayout()
-        nav_layout.setContentsMargins(30, 20, 40, 10)
-        nav_layout.addStretch() 
-
-        self.btn_back_dashboard = QPushButton("Back to Dashboard")
-        self.btn_back_dashboard.setCursor(Qt.PointingHandCursor)
-        self.btn_back_dashboard.setStyleSheet(f"""
-            QPushButton {{
-                background-color: transparent; 
-                color: {COLOR_RED}; 
-                font-size: 14px; 
-                font-weight: bold;
-                border: 2px solid {COLOR_RED};
-                border-radius: 8px;
-                padding: 8px 20px;
-            }}
-            QPushButton:hover {{ background-color: {COLOR_RED}; color: {COLOR_WHITE}; }}
-        """)
-        self.btn_back_dashboard.clicked.connect(self.return_to_dashboard)
-        nav_layout.addWidget(self.btn_back_dashboard)
-        main_layout.addLayout(nav_layout)
-
-        self.stack = QStackedWidget()
-        main_layout.addWidget(self.stack)
-
-        self.prompt_page = self.create_prompt_page()
-        self.result_page = self.create_placeholder_result_page() # Dummy für den Erfolg
-
-        self.stack.addWidget(self.prompt_page)
-        self.stack.addWidget(self.result_page)
-
-    def return_to_dashboard(self):
-        self.hide()
-        if hasattr(self, 'dashboard_window') and self.dashboard_window:
-            self.dashboard_window.show()
-
-
-    def create_prompt_page(self):
-        page = QWidget()
-        main_layout = QVBoxLayout(page)
-        main_layout.setAlignment(Qt.AlignCenter)
-        
-        # Background Card
-        card = QWidget()
-        card.setFixedWidth(500)
-        card.setStyleSheet(f"QWidget {{ background-color: {COLOR_WHITE}; border-radius: 24px; }}")
-        card_layout = QVBoxLayout(card)
-        card_layout.setContentsMargins(50, 50, 50, 50)
-        card_layout.setSpacing(25)
-
-        title = QLabel("Data management")
-        title.setFont(QFont(FONT_FAMILY, 24, QFont.Bold))
-        title.setAlignment(Qt.AlignCenter)
-        title.setStyleSheet(f"color: {COLOR_BLACK};")
-        card_layout.addWidget(title)
-
-        # The Two Main Buttons
-        self.btn_manage_ngos = QPushButton("Manage NGOs")
-        self.btn_manage_donors = QPushButton("Manage Donors")
-        
-        button_style = f"""
-            QPushButton {{
-                background-color: {COLOR_WHITE};
-                color: {COLOR_BLACK};
-                border: 2px solid {COLOR_GREY};
-                border-radius: 8px;
-                padding: 15px;
-                font-weight: bold;
-                font-size: 16px;
-            }}
-            QPushButton:hover {{ background-color: {COLOR_GREY}; }}
-        """
-
-        for btn in [self.btn_manage_ngos, self.btn_manage_donors]:
-            btn.setStyleSheet(button_style)
-            btn.setCursor(Qt.PointingHandCursor)
-            card_layout.addWidget(btn)
-
-        # Connections
-        self.btn_manage_ngos.clicked.connect(self.open_ngo_manager)
-        self.btn_manage_donors.clicked.connect(self.open_donor_manager)
-
-        # Generate Button
-        self.btn_generate = QPushButton("Generate matches")
-        self.btn_generate.setFixedHeight(55)
-        self.btn_generate.setStyleSheet(f"""
-            QPushButton {{
-                background-color: {COLOR_RED};
-                color: {COLOR_WHITE};
-                border-radius: 12px;
-                font-weight: bold;
-                font-size: 16px;
-            }}
-            QPushButton:hover {{ background-color: #c42240; }}
-        """)
-        self.btn_generate.setCursor(Qt.PointingHandCursor)
-        self.btn_generate.clicked.connect(self.handle_generate)
-        card_layout.addWidget(self.btn_generate)
-
-        main_layout.addWidget(card)
-        return page
-
-    def open_donor_manager(self):
-        self.donor_dialog = ManageDonorDialog(self)
-        self.donor_dialog.exec()
-
-    def create_placeholder_result_page(self):
-        """Eine einfache Dummy-Seite, um den erfolgreichen Sprung zu demonstrieren."""
-        page = QWidget()
-        layout = QVBoxLayout(page)
-        lbl = QLabel("Matchmaking Result Page (Coming next!)")
-        lbl.setFont(QFont(FONT_FAMILY, 24, QFont.Bold))
-        lbl.setAlignment(Qt.AlignCenter)
-        layout.addWidget(lbl)
-        return page
-
-    def handle_generate(self):
-        donor_name = ""
-        donor_strategy = ""
-
-        try:
-            response = requests.get("http://127.0.0.1:8000/api/donors")
-            if response.status_code ==200:
-                donors = response.json()
-                if not donors:
-                    QMessageBox.warning(self, "No Donors", "Please add at least one donor to generate matches.")
-                    return
-                latest_donor = donors[-1]
-                donor_name = latest_donor.get("name", "Unknown")
-                donor_strategy = latest_donor.get("strategy", "")
-
-            else:
-                QMessageBox.warning(self, "Error", f"Failed to fetch donors")
-                return
-            
-        except Exception as e:
-            QMessageBox.critical(self, "Connection Error", f"Could not connect to backend: {str(e)}")
-            return      
-        
-        # send the input data to the backend for AI processing
-        payload = { "donor_name": donor_name, "donor_strategy": donor_strategy} 
-
-        # 3. Wenn valide: Lade-Dialog anzeigen
-        self.loading_dialog = LoadingDialog(payload,self)
-        self.loading_dialog.start_loading()
-        
-        # exec() pausiert das Hauptfenster, bis der Dialog fertig ist
-        if self.loading_dialog.exec(): 
-            # 4. If successful: Jump to result page
-            print("Successfully received data from Backend:", self.loading_dialog.result_data)
-            self.stack.setCurrentIndex(1)
-        else:
-            # If failed: Display dialogue (Hier simuliert, falls der Dialog abgebrochen würde)
-            QMessageBox.critical(self, "Fail to Generate", "An error occurred during AI matching.")
-
-    def open_ngo_manager(self):
-        self.dialog = ManageNGODialog(self)
-        self.dialog.exec()
-
-
-
-class LoadingDialog(QDialog):
-    """Der Dialog, der während der 'Backend'-Analyse angezeigt wird."""
-    def __init__(self, payload, parent=None):
-        super().__init__(parent)
-        self.payload = payload
-        self.result_data = None # to store the result from backend
-
-        self.setWindowTitle("Loading")
-        self.setFixedSize(400, 200)
-        self.setStyleSheet(f"background-color: {COLOR_WHITE}; border-radius: 16px;")
-        
-        layout = QVBoxLayout(self)
-        layout.setContentsMargins(30, 30, 30, 30)
-        layout.setAlignment(Qt.AlignCenter)
-
-        # Status Text
-        self.lbl_status = QLabel("HIGGS AI is analyzing data...")
-        self.lbl_status.setFont(QFont(FONT_FAMILY, 16, QFont.Bold))
-        self.lbl_status.setAlignment(Qt.AlignCenter)
-        layout.addWidget(self.lbl_status)
-
-        # Progress Bar (Extension)
-        self.progress = QProgressBar()
-        self.progress.setStyleSheet(f"""
-            QProgressBar {{ border: 2px solid {COLOR_GREY}; border-radius: 8px; text-align: center; }}
-            QProgressBar::chunk {{ background-color: {COLOR_GREEN}; border-radius: 6px; }}
-        """)
-        self.progress.setValue(0)
-        layout.addWidget(self.progress)
-
-        # Timer für die Simulation der KI-Berechnung
-        self.timer = QTimer()
-        self.timer.timeout.connect(self.update_progress)
-        self.step = 0
-
-        # Backend Worker Thread starten
-        self.worker = MatchWorker(self.payload)
-        self.worker.finished_signal.connect(self.on_success)
-        self.worker.error_signal.connect(self.on_error)
-
-    def start_loading(self):
-        self.step = 0
-        self.progress.setValue(0)
-        self.timer.start(30) # Alle 30ms updaten
-        self.worker.start() #start the backend worker thread
-
-    def update_progress(self):
-     if self.step < 90:
-        self.step += 1
-        self.progress.setValue(self.step) # at most 90% to keep some suspense until backend finishes
-
-    def on_success(self, data):
-        self.timer.stop()
-        self.progress.setValue(100) # reach 100% on success
-        self.result_data = data # store the backend result for later use
-        self.accept() # close the dialog with success
-    
-    def on_error(self, error_msg):
-        self.timer.stop()
-        QMessageBox.critical(self, "Matchmaking Failed", error_msg)
-        self.reject() # close the dialog with failure
-
 # Manage Donor 
 class ManageDonorDialog(QDialog):
     def __init__(self, parent=None):
         super().__init__(parent)
         self.setWindowTitle("Add & Manage Donors")
         self.setMinimumSize(450, 650)
-        self.setStyleSheet(f"background-color: {COLOR_WHITE}; border-radius: 12px;")
-        
+
         layout = QVBoxLayout(self)
         layout.setSpacing(10)
 
@@ -488,21 +199,18 @@ class ManageDonorDialog(QDialog):
         
         self.name_input = QLineEdit()
         self.name_input.setPlaceholderText("Donor Name")
-        self.name_input.setStyleSheet(INPUT_STYLE_DEFAULT)
         layout.addWidget(self.name_input)
 
         self.strategy_input = QLineEdit()
         self.strategy_input.setPlaceholderText("Donor Strategy")
-        self.strategy_input.setStyleSheet(INPUT_STYLE_DEFAULT)
         layout.addWidget(self.strategy_input)
 
         self.legal_input = QLineEdit()
         self.legal_input.setPlaceholderText("Legal Form")
-        self.legal_input.setStyleSheet(INPUT_STYLE_DEFAULT)
         layout.addWidget(self.legal_input)
         
         btn_add = QPushButton("Save Donor to Database")
-        btn_add.setStyleSheet(f"background-color: {COLOR_GREEN}; color: white; padding: 12px; font-weight: bold; border-radius: 8px;")
+        btn_add.setProperty("styling", "greenbtn")
         btn_add.clicked.connect(self.add_donor_to_db)
         layout.addWidget(btn_add)
 
@@ -512,14 +220,11 @@ class ManageDonorDialog(QDialog):
         self.donor_list = QTreeWidget()
         self.donor_list.setColumnCount(3)
         self.donor_list.setHeaderLabels(["Name", "Strategy", "Legal Form"])
-        self.donor_list.setStyleSheet(f"""
-            QHeaderView::section {{ background-color: {COLOR_GREY}; padding: 4px; border: 1px solid {COLOR_WHITE}; font-weight: bold; color: {COLOR_BLACK}; }}
-            QTreeWidget {{ border: 1px solid {COLOR_GREY}; border-radius: 8px; background-color: {COLOR_WHITE}; color: {COLOR_BLACK}; font-family: '{FONT_FAMILY}'; font-size: 13px; }}
-        """)
+        self.donor_list.setProperty("styling", "ngolisttree")
         layout.addWidget(self.donor_list)
         
         btn_del = QPushButton("Delete Selected Donor")
-        btn_del.setStyleSheet(f"background-color: {COLOR_RED}; color: white; padding: 10px; font-weight: bold; border-radius: 8px;")
+        btn_del.setProperty("styling", "filled")
         btn_del.clicked.connect(self.delete_selected_donor)
         layout.addWidget(btn_del)
 
@@ -580,8 +285,83 @@ class ManageDonorDialog(QDialog):
             print(f"Delete error: {e}")
             QMessageBox.critical(self, "Connection Error", f"Could not connect to backend: {str(e)}")
 
+class HIGGSApp(QMainWindow):
+    def __init__(self):
+        super().__init__()
+
+        # Figma Desktop Frame Size
+        self.setWindowTitle("HIGGS AI Matchmaking")
+
+        # add a central widget and layout to hold the pages
+        central_widget = QWidget()
+        self.setCentralWidget(central_widget)
+
+        main_layout = QVBoxLayout(central_widget)
+        main_layout.setContentsMargins(0, 0, 0, 0)
+
+        self.nav_content = HNavBar(["event-matches", "dashboard", "logout"], self)
+
+        self.prompt_page = self.create_prompt_page()
+
+        main_layout.addWidget(self.nav_content)
+        main_layout.addWidget(self.prompt_page)
+        main_layout.addStretch(1)
+        main_layout.setSpacing(100)
+        central_widget.setLayout(main_layout)
+
+    def create_prompt_page(self):
+        page = QWidget()
+        main_layout = QVBoxLayout()
+        main_layout.setAlignment(Qt.AlignCenter)
+        main_layout.setContentsMargins(20, 20, 20, 20)
+        # Background Card
+        card = QWidget()
+        card.setAttribute(Qt.WidgetAttribute.WA_StyledBackground, True)
+        card.setProperty("styling", "card")
+        card_layout = QVBoxLayout(card)
+        card_layout.setContentsMargins(100, 100, 100, 100)
+        card_layout.setSpacing(25)
+
+        title = QLabel("Data management")
+        title.setFont(QFont(FONT_FAMILY, 24, QFont.Bold))
+        title.setAlignment(Qt.AlignCenter)
+        card_layout.addWidget(title)
+
+        # The Two Main Buttons
+        self.btn_manage_ngos = QPushButton("Manage NGOs")
+        self.btn_manage_donors = QPushButton("Manage Donors")
+
+        for btn in [self.btn_manage_ngos, self.btn_manage_donors]:
+            btn.setProperty("styling", "whitebtn")
+            btn.setCursor(Qt.PointingHandCursor)
+            card_layout.addWidget(btn)
+
+        # Connections
+        self.btn_manage_ngos.clicked.connect(self.open_ngo_manager)
+        self.btn_manage_donors.clicked.connect(self.open_donor_manager)
+
+        main_layout.addWidget(card)
+        page.setLayout(main_layout)
+        return page
+
+    def open_donor_manager(self):
+        self.donor_dialog = ManageDonorDialog(self)
+        self.donor_dialog.exec()
+
+    def open_ngo_manager(self):
+        self.dialog = ManageNGODialog(self)
+        self.dialog.exec()
+
+
 if __name__ == "__main__":
     app = QApplication(sys.argv)
+
+    style = loadstylesheet()
+    if style:
+        app.setStyleSheet(style)
+    else:
+        print("No stylesheet")
+
     window = HIGGSApp(None)
     window.show()
     sys.exit(app.exec())

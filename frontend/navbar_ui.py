@@ -51,6 +51,7 @@ class HNavBar(QWidget):
     def create_nav_button(self, lbl: str, cb):
         nav_btn = QPushButton(text=lbl)
         nav_btn.setProperty("styling", "outline")
+        nav_btn.setCursor(Qt.CursorShape.PointingHandCursor)
         self.nav_bar.addWidget(nav_btn)
         nav_btn.clicked.connect(cb)
 
@@ -69,29 +70,31 @@ class HNavBar(QWidget):
     def input_page(self):
         from prompt_ui import HIGGSApp
         self.main_window.hide()
-        input_pg = HIGGSApp()
-        input_pg.show()
+        self.input_pg = HIGGSApp()
+        self.input_pg.show()
 
     def login(self):
         from main_ui import LoginWindow
         self.main_window.hide()
-        login_window = LoginWindow()
-        login_window.show()
+        self.login_window = LoginWindow()
+        self.login_window.show()
     
     def signup(self):
         from registration_ui import RegistrationWindow
         self.main_window.hide()
-        reg_pg = RegistrationWindow()
-        reg_pg.show()
+        self.reg_pg = RegistrationWindow()
+        self.reg_pg.show()
     
     def settings(self):
+        from setting_ui import SettingsWindow
         self.main_window.hide()
-        # need to look more carefully to finish off
+        self.settings_pg = SettingsWindow()
+        self.settings_pg.show()
 
     def output_page(self):
         from matches_schedules_ui import GenerateOutputWindow
         self.main_window.hide()
-        output_pg = GenerateOutputWindow()
-        output_pg.show()
+        self.output_pg = GenerateOutputWindow()
+        self.output_pg.show()
         
 
