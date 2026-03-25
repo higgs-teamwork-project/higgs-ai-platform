@@ -5,6 +5,7 @@ from pydantic import BaseModel
 from datetime import datetime
 from openpyxl import Workbook
 from openpyxl.styles import Alignment
+from openpyxl.utils import get_column_letter
 
 import database
 import ai_core.api as ai_api
@@ -12,6 +13,9 @@ import ai_core.api as ai_api
 import database.accounts_db as accounts_db
 import database.dataset_db as dataset_db
 import database.schedule_db as schedule_db
+
+from frontend.schedule_ui import update_time_slot
+from datetime import datetime, time, timedelta
 
 app = FastAPI()
 
@@ -315,12 +319,25 @@ async def export_matches_wk():
     matches = dataset_db.list_all_matches_details()
     matches_rows = [_row_to_jsonable(m) for m in matches]
 
-    filename = "matchmaking_saved_results_" + datetime.now().strftime("%Y-%m-%d_%H-%M-%S")+ ".xlsx"
+    filename = "matchmaking_saved_results_" + datetime.now().strftime("%Y-%m-%d_%H-%M-%S") + ".xlsx"
     EXPORT_DIR.mkdir(parents=True, exist_ok=True)
     export_path = EXPORT_DIR / filename
 
     create_file(export_path, matches_rows)
 
+@app.post("/api/download-schedule-workbook")
+async def export_schedule_wk():
+    try:
+        d = datetime(2026, 7, 1)
+        meetings = schedule_db.get_meetings_on_date(d)
+
+        filename = "saved_schedule" + datetime.now().strftime("%Y-%m-%d_%H-%M-%S") + ".xlsx"
+        EXPORT_DIR.mkdir(parents=True, exist_ok=True)
+        export_path = EXPORT_DIR / filename
+
+        create_schedule_file(export_path, meetings, d)
+    except Exception as e:
+        print(e)
 
 """"
 API for scheduling.
@@ -359,7 +376,7 @@ async def get_meeting(donor_id: int, ngo_id: int):
     return meeting
 
 class MeetingList(BaseModel):
-    meetings: List[Tuple[int, int, str, datetime]] # (donor id, ngo id, meeting time)
+    meetings: List[Tuple[int, int, str, str, datetime]] # (donor id, ngo id, donor_name, ngo_name, meeting time)
 
 @app.post("/api/schedule/add-many-meetings")
 async def add_many_meetings(body: MeetingList):
@@ -464,6 +481,89 @@ def create_file(name: str, data: list):
     wrap_cells(sheet)
     workbook.save(filename=name)
 
+def create_schedule_file(name: str, data: list, DAY1: datetime):
+    # generate row numbers for each possible time
+    row_mapping = {} # datetime -> (int, sheet name string)
+
+    START_DAY1 = datetime.combine(DAY1, time(15,0))
+    END_DAY1 = datetime.combine(DAY1, time(18,0))
+
+    START_DAY2 = datetime.combine(DAY1 + timedelta(days=1), time(15,0))
+    END_DAY2 = datetime.combine(DAY1 + timedelta(days=1), time(18, 0))
+
+    day1_sheet_name = datetime.strftime(DAY1, "%Y-%m-%d")
+    day2_sheet_name = datetime.strftime(DAY1 + timedelta(days=1), "%Y-%m-%d")
+
+    t = START_DAY1
+    row = 2
+    sheet_name = day1_sheet_name
+    while t:
+        row_mapping[t] = (row, sheet_name)
+        t = update_time_slot(t, end1=END_DAY1, end2=END_DAY2, start1=START_DAY1, start2=START_DAY2)
+        if t == START_DAY2:
+            sheet_name = day2_sheet_name
+            row = 2
+        else:
+            row = row + 1
+    print(row_mapping)
+    # donor id sorted ASC. Each donor can see people on multiple days.
+    column_mapping = {} # donor id -> (column, donor name)
+    col = 2
+    for d in data:
+        if d["donor_id"] not in column_mapping:
+            column_mapping[d["donor_id"]] = (col, d["donor_name"])
+            col = col + 1
+
+
+    """
+    Make the spread sheet.
+    """
+    workbook = Workbook()
+    day1_sheet = workbook.active
+    day1_sheet.title = day1_sheet_name
+    day2_sheet = workbook.create_sheet(day2_sheet_name)
+
+    # donors
+    for donor in column_mapping:
+        cell_value = column_mapping[donor][1]
+        column_num = column_mapping[donor][0]
+        day1_sheet.cell(row=1, column=column_num, value=cell_value)
+        day2_sheet.cell(row=1, column=column_num, value=cell_value)
+
+    # times
+    for timing in row_mapping:
+        # extract time only
+        cell_value = timing.strftime("%H:%M")
+        row_num = row_mapping[timing][0]
+        day_sheet = row_mapping[timing][1]
+
+        if day_sheet == day1_sheet_name:
+            day1_sheet.cell(row=row_num, column=1, value=cell_value)
+        else:
+            day2_sheet.cell(row=row_num, column=1, value=cell_value)
+
+    # meetings
+    for meeting in data:
+        print(meeting["meeting_time"])
+        meeting_time_dt = datetime.strptime(meeting["meeting_time"], "%Y-%m-%d %H:%M:%S")
+        meeting_row = row_mapping[meeting_time_dt][0]
+        meeting_sheet = row_mapping[meeting_time_dt][1]
+        meeting_column = column_mapping[meeting["donor_id"]][0]
+
+        if meeting_sheet == day1_sheet_name:
+            day1_sheet.cell(row=meeting_row, column=meeting_column, value=meeting["ngo_name"])
+        else:
+            day2_sheet.cell(row=meeting_row, column=meeting_column, value=meeting["ngo_name"])
+
+    # styling
+    for col in range(1, day1_sheet.max_column + 1):
+        day1_sheet.column_dimensions[get_column_letter(col)].width = 25
+    for col in range(1, day2_sheet.max_column + 1):
+        day2_sheet.column_dimensions[get_column_letter(col)].width = 25
+    wrap_cells(day1_sheet)
+    wrap_cells(day2_sheet)
+
+    workbook.save(filename=name)
 
 def merge_cells(prev_row_num, merge_to, sheet):
     for c in range(1,5):
