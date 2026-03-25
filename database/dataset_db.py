@@ -344,11 +344,42 @@ def list_all_matches() -> list[sqlite3.Row]:
             """
             SELECT donor_id, ngo_id
             FROM donor_ngo_matches
+            ORDER BY donor_id ASC
             """
         )
         return cur.fetchall()
     finally:
         conn.close()
+
+
+def list_all_matches_details() -> list[sqlite3.Row]:
+    """
+    For exporting matches. Provides donor details + ngo details like in the file provided.
+    """
+    conn = get_connection()
+    try:
+        cur = conn.cursor()
+        cur.execute(
+            """
+            SELECT 
+                d.id AS donor_id, 
+                d.name AS donor_name, 
+                d.legal_form AS donor_legal_form, 
+                d.strategy AS donor_strategy,  
+                n.name AS ngo_name, 
+                n.strategy AS ngo_strategy, 
+                s.similarity
+            FROM donor_ngo_matches s
+            JOIN donors d ON d.id = s.donor_id
+            JOIN ngos n ON n.id = s.ngo_id
+            ORDER BY d.id ASC
+            """
+        )
+        return cur.fetchall()
+    finally:
+        conn.close()
+
+
 
 def _join(values: Optional[Iterable[str]]) -> Optional[str]:
     if values is None:

@@ -3,6 +3,8 @@ from typing import *
 from fastapi import FastAPI, HTTPException, UploadFile, File
 from pydantic import BaseModel
 from datetime import datetime
+from openpyxl import Workbook
+from openpyxl.styles import Alignment
 
 import database
 import ai_core.api as ai_api
@@ -286,7 +288,6 @@ async def matchmaking_export(body: MatchmakingExportBody):
         "exported_count": len(export_matches),
     }
 
-
 @app.post("/api/import-excel")
 async def import_excel(file: UploadFile = File(...)):
     """
@@ -306,6 +307,19 @@ async def import_excel(file: UploadFile = File(...)):
 
     summary = database.excel_import.import_dataset_from_excel(save_path)
     return {"file": file.filename, "summary": summary}
+
+
+
+@app.post("/api/download-matches-workbook")
+async def export_matches_wk():
+    matches = dataset_db.list_all_matches_details()
+    matches_rows = [_row_to_jsonable(m) for m in matches]
+
+    filename = "matchmaking_saved_results_" + datetime.now().strftime("%Y-%m-%d_%H-%M-%S")+ ".xlsx"
+    EXPORT_DIR.mkdir(parents=True, exist_ok=True)
+    export_path = EXPORT_DIR / filename
+
+    create_file(export_path, matches_rows)
 
 
 """"
@@ -389,3 +403,75 @@ async def delete_donors(body: DeleteDonorsBody):
     deleted = dataset_db.delete_donors(body.ids)
     deleted_meetings = schedule_db.delete_many_donor_meetings(body.ids)
     return {"status": "ok", "deleted": deleted, "deleted_meetings": deleted_meetings}
+
+def create_file(name: str, data: list):
+    workbook = Workbook()
+    sheet = workbook.active
+
+    # column names
+    sheet.append([
+        "#",
+        "Donor",
+        "Legal Form",
+        "Strategy",
+        "Organizations they picked",
+        "Organizations Strategy",
+        "Similarity"
+    ])
+
+    sheet.freeze_panes = "A2"
+
+    column_widths = {
+        1: 5,   # # (ID)
+        2: 20,  # Donor
+        3: 15,  # Legal Form
+        4: 60,  # Strategy
+        5: 20,  # Organizations
+        6: 60,   # Organizations Strategy 
+        7: 10    # Similarity
+    }
+
+    for col_num, width in column_widths.items():
+        column_letter = sheet.cell(row=1, column=col_num).column_letter
+        sheet.column_dimensions[column_letter].width = width
+
+    """
+    Data is rows of dicts. Need to parse into list of lists first.
+    As the data is sorted by donor id ascending, this groups the same donors together. 
+    We will check if the processing for each donor is done first, and then merge rows
+
+    """
+    if len(data) > 0:
+        next_row = sheet.max_row + 1 # the next row 
+        rows = [list(row.values()) for row in data]
+        prev_row_id = rows[0][0]
+        prev_row_num = next_row # keeps track of where to merge from
+        for r in rows:
+            sheet.append(r)
+            if r[0] != prev_row_id and sheet.max_row > 3:
+                print("merge")
+                merge_to = sheet.max_row - 1
+                merge_cells(prev_row_num, merge_to, sheet)
+
+                prev_row_num = sheet.max_row
+
+            prev_row_id = r[0]
+        # last group
+        if sheet.max_row > prev_row_num:
+            merge_to = sheet.max_row
+            merge_cells(prev_row_num, merge_to, sheet)
+
+    wrap_cells(sheet)
+    workbook.save(filename=name)
+
+
+def merge_cells(prev_row_num, merge_to, sheet):
+    for c in range(1,5):
+        sheet.merge_cells(start_row=prev_row_num, start_column=c, end_row=merge_to, end_column=c)
+
+def wrap_cells(sheet):
+    style = Alignment(wrap_text=True, vertical="top", horizontal="left")
+
+    for row in sheet.iter_rows():
+        for cell in row:
+            cell.alignment = style

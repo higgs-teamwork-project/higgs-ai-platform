@@ -194,7 +194,7 @@ class GenerateOutputWindow(QMainWindow):
         main_layout.setSpacing(0)
         self.main_view = QSplitter(Qt.Orientation.Horizontal)
 
-        self.nav_bar = HNavBar(["dashboard", "add-orgs", "logout"], self)
+        self.nav_bar = HNavBar(["export-matches", "dashboard", "add-orgs", "logout"], self)
 
         donors_table_background = QWidget()
         donors_table_background_layout = QVBoxLayout()
