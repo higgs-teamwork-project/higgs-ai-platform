@@ -1,15 +1,10 @@
 from PySide6.QtCore import Qt
-from PySide6.QtWidgets import (QMainWindow, 
-                               QWidget, 
+from PySide6.QtWidgets import (QWidget, 
                                QScrollArea, 
                                QGridLayout,
                                QLabel,
-                               QVBoxLayout, 
-                               QSplitter, 
-                               QStackedLayout, 
-                               QListView, 
-                               QPushButton,
-                               QMessageBox)
+                               QVBoxLayout,
+                               QListWidget)
 import requests
 
 from datetime import datetime, date, time, timedelta
@@ -66,7 +61,10 @@ def update_schedule_db(donor_schedule: dict, donor_name: str):
     insert_meetings = []
     for d in donor_schedule:
         clean_name = donor_schedule[d][1].replace('“', '"').replace('”', '"').replace('’', "'")
-        clean_date = d[1].isoformat()
+        if d[1] is None:
+            clean_date = None
+        else:
+            clean_date = d[1].isoformat()
         insert_meetings.append([d[0], donor_schedule[d][0], donor_name, clean_name, clean_date])
     
     payload = {
@@ -137,7 +135,7 @@ def generate_schedule(meetings: list, matches: list, DAY1: datetime, donor_name:
                             donor_schedule[(donor, None)] = ngo   
                             found = True # stop loop     
                             existing_matches.append((donor, ngo[0]))                      
-        ## update db with new meetings
+    ## update db with new meetings
     update_schedule_db(donor_schedule, donor_name)
 
 def get_rows_cols_dict(DAY1: datetime):
@@ -162,7 +160,7 @@ def get_rows_cols_dict(DAY1: datetime):
     return result
 
 class Schedule(QScrollArea):
-    def __init__(self, data, day_1: datetime):
+    def __init__(self, data, day_1: datetime, unassigned):
         super().__init__()
 
         schedule_content = QWidget()
@@ -171,7 +169,7 @@ class Schedule(QScrollArea):
         schedule_content.setLayout(self.schedule_grid)
         self.setWidgetResizable(True)
         self.setWidget(schedule_content)
-
+        self.unassigned_tab = unassigned
         self.time_mapping = get_rows_cols_dict(day_1)
 
         self.remake(data)
@@ -184,6 +182,7 @@ class Schedule(QScrollArea):
         if len(schedule) == 0:
             lbl = QLabel("There are no matches for this donor.")
             self.schedule_grid.addWidget(lbl, 0, 0, alignment=Qt.AlignmentFlag.AlignCenter)
+            self.unassigned_tab.remake([])
         else:
             # make tabs that say day 1 and day 2
             time_heading_lbl = QLabel("MEETING TIME")
@@ -214,11 +213,41 @@ class Schedule(QScrollArea):
                 self.schedule_grid.addWidget(time_lbl, r, 0)
                 r = r + 1
 
+
+            unassigned_meetings = []
             for meeting in schedule:
                 name_lbl = QLabel(meeting["ngo_name"])
-                meeting_time_dt = datetime.strptime(meeting["meeting_time"], "%Y-%m-%d %H:%M:%S")
-                row = self.time_mapping[meeting_time_dt][0]
-                col = self.time_mapping[meeting_time_dt][1]
-                name_lbl.setProperty("styling", "nameslotlbl")
-                name_lbl.setWordWrap(True)
-                self.schedule_grid.addWidget(name_lbl, row, col)
+                if meeting["meeting_time"] is None:
+                    unassigned_meetings.append(meeting)                    
+                else:
+                    meeting_time_dt = datetime.strptime(meeting["meeting_time"], "%Y-%m-%d %H:%M:%S")
+                    row = self.time_mapping[meeting_time_dt][0]
+                    col = self.time_mapping[meeting_time_dt][1]
+                    name_lbl.setProperty("styling", "nameslotlbl")
+                    name_lbl.setWordWrap(True)
+                    self.schedule_grid.addWidget(name_lbl, row, col)
+            self.unassigned_tab.remake(unassigned_meetings)
+
+class UnassignedTab(QWidget):
+    def __init__(self, names):
+        super().__init__()
+        self.main_layout = QVBoxLayout()
+
+        self.none_lbl = QLabel("No NGO meetings are unscheduled for this donor.")
+        self.main_layout.addWidget(self.none_lbl, alignment=Qt.AlignmentFlag.AlignCenter)
+
+        self.names_box = QListWidget()
+        self.main_layout.addWidget(self.names_box)
+
+        self.setLayout(self.main_layout)
+        self.remake(names=names)
+
+    def remake(self, names):
+        if len(names) == 0:
+            self.names_box.hide()
+            self.none_lbl.show()
+        else:
+            self.none_lbl.hide()
+            self.names_box.show()
+            names_str = [m["ngo_name"] for m in names]
+            self.names_box.addItems(names_str)

@@ -84,11 +84,11 @@ class LoginWindow(QMainWindow):
 
 if __name__ == "__main__":
     app = QApplication(sys.argv)
-    #window = LoginWindow()
+    window = LoginWindow()
     ## FOR TESTING PURPOSES
-    window = GenerateOutputWindow()
+    #window = GenerateOutputWindow()
     style = loadstylesheet()
-    print(style)
+    #print(style)
     if style:
         app.setStyleSheet(style)
     else:

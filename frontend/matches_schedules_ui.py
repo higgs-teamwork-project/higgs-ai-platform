@@ -15,7 +15,7 @@ import requests
 from load_style_ui import loadstylesheet
 from list_donors_table_ui import DonorsTableModel, DonorsTable
 from show_matches_table_ui import MatchesTable
-from schedule_ui import generate_schedule, Schedule
+from schedule_ui import generate_schedule, Schedule, UnassignedTab
 from navbar_ui import HNavBar
 from datetime import datetime, date, time 
 import sys
@@ -42,8 +42,10 @@ class MatchesTabView(QWidget):
 
         self.matches_tab = QWidget()
         self.schedule_tab = QWidget()
+        self.unassigned_tab = QWidget()
         self.tab_view.addTab(self.matches_tab, "Matches")
-        self.tab_view.addTab(self.schedule_tab, "Meetings")
+        self.tab_view.addTab(self.schedule_tab, "Scheduled NGOs")
+        self.tab_view.addTab(self.unassigned_tab, "Unscheduled NGOs")
 
         # --- set up matches tab ---
         self.matches_outer_layout = QVBoxLayout(self.matches_tab)    
@@ -69,10 +71,15 @@ class MatchesTabView(QWidget):
         else:
             self.generate_matches_btn.hide()
 
+        # --- ngos with no meetings --
+        self.no_meetings_tab = UnassignedTab([])
+        no_meetings_outer = QVBoxLayout(self.unassigned_tab)
+        self.unassigned_tab.setLayout(no_meetings_outer)
+        no_meetings_outer.addWidget(self.no_meetings_tab)
+
         # --- schedule tab ---
         self.donor_schedule = self.parse_schedule()
-        self.schedule = Schedule(self.donor_schedule, datetime(2026, 7, 1))
-        self.schedule.remake(self.donor_schedule)
+        self.schedule = Schedule(self.donor_schedule, datetime(2026, 7, 1), self.no_meetings_tab)
         schedule_outer_layout = QVBoxLayout(self.schedule_tab)
         self.schedule_tab.setLayout(schedule_outer_layout)
         schedule_outer_layout.addWidget(self.schedule)
@@ -144,7 +151,6 @@ class MatchesTabView(QWidget):
         self.load_matches_table()
         self.make_donor_schedule(data["recommendations"])
 
-
     def generate_match(self):
         self.generate_matches_btn.hide()
         self.matches_spinner.show()
@@ -171,7 +177,7 @@ class MatchesTabView(QWidget):
         recs = [{"donor_id": self.donor_id, "ngo_id": d["ngo_id"], "ngo_name": d["ngo"]["name"]} for d in results]
         generate_schedule(existing_meetings, recs, datetime(2026, 7, 1), self.donor_name)
         donor_data = self.parse_schedule()
-        self.schedule.remake(donor_data)
+        self.schedule.remake(donor_data) 
 
 
 class SplitView(QWidget):

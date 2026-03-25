@@ -39,7 +39,7 @@ class DonorsTableModel(QAbstractTableModel):
             return donor_table_rows      
 
         except:
-            QMessageBox.critical(QWidget(self), "Server Error", "Could not retrieve donors.")
+            print("Could not retrieve donors.")
             return []
 
     def rowCount(self, parent = None):
