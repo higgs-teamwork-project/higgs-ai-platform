@@ -172,4 +172,39 @@ def get_all_meetings():
     finally:
         conn.close()
 
+def delete_many_donor_meetings(ids: list) -> int:
+    # tuple format as ids is a list of integers
+    id_list = [(id,) for id in ids]
 
+    conn = get_connection()
+    try:
+        cur = conn.cursor()
+        cur.executemany(
+            """
+            DELETE FROM schedule
+            WHERE donor_id = ?
+            """,
+            id_list
+        )
+        conn.commit()
+        return cur.rowcount
+    finally:
+        conn.close()
+
+def delete_many_ngo_meetings(ids: list) -> int:
+    id_list = [(id,) for id in ids]
+
+    conn = get_connection()
+    try:
+        cur = conn.cursor()
+        cur.executemany(
+            """
+            DELETE FROM schedule
+            WHERE ngo_id = ?
+            """,
+            id_list
+        )
+        conn.commit()
+        return cur.rowcount
+    finally:
+        conn.close()

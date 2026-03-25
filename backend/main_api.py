@@ -13,6 +13,8 @@ import database.schedule_db as schedule_db
 
 app = FastAPI()
 
+MAX_MATCHES = 22 # takes into account: 13 min meetings, with 2 mins in between, with two 7 minutes breaks, over 2 days from 3pm-6pm
+
 # ---------- Matchmaking: normalize raw AI scores to user-friendly percentages ----------
 # Raw cosine similarity is typically 0.2–0.7. We map top score -> 100% and filter out
 # results that are "too far" from the top so the list looks consistent.
@@ -187,7 +189,8 @@ async def delete_ngos(body: DeleteNGOsBody):
     if not body.ids:
         raise HTTPException(status_code=400, detail="ids must be a non-empty list")
     deleted = dataset_db.delete_ngos(body.ids)
-    return {"status": "ok", "deleted": deleted}
+    deleted_meetings = schedule_db.delete_many_ngo_meetings(body.ids)
+    return {"status": "ok", "deleted": deleted, "deleted_meetings": deleted_meetings}
 
 
 # ---------- Single-donor matchmaking (donor entered by user, not from DB) ----------
@@ -384,4 +387,5 @@ async def delete_donors(body: DeleteDonorsBody):
     if not body.ids:
         raise HTTPException(status_code=400, detail="ids must be a non-empty list")
     deleted = dataset_db.delete_donors(body.ids)
-    return {"status": "ok", "deleted": deleted}
+    deleted_meetings = schedule_db.delete_many_donor_meetings(body.ids)
+    return {"status": "ok", "deleted": deleted, "deleted_meetings": deleted_meetings}

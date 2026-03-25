@@ -7,6 +7,5 @@ pandas
 openpyxl
 sentence-transformers
 numpy
-pyqtwaitingspinner
 
 # torch is installed automatically as a dependency of sentence-transformers
