@@ -35,6 +35,7 @@ def initialize_schema() -> None:
             CREATE TABLE IF NOT EXISTS schedule (
                 donor_id INTEGER NOT NULL,
                 ngo_id INTEGER NOT NULL,
+                donor_name TEXT,
                 ngo_name TEXT,
                 meeting_time TIMESTAMP,
                 PRIMARY KEY (donor_id, ngo_id)
@@ -48,6 +49,7 @@ def initialize_schema() -> None:
 def insert_meeting(
     donor_id: int,
     ngo_id: int,
+    donor_name: str,
     ngo_name: str,
     timestamp: datetime
 ) -> int:
@@ -60,14 +62,15 @@ def insert_meeting(
         cur = conn.cursor()
         cur.execute(
             """
-            INSERT INTO schedule(donor_id, ngo_id, ngo_name, meeting_time)
-            VALUES(?, ?, ?, ?)
+            INSERT INTO schedule(donor_id, ngo_id, donor_name, ngo_name, meeting_time)
+            VALUES(?, ?, ?, ?, ?)
             ON CONFLICT(donor_id, ngo_id)
             DO UPDATE SET meeting_time=excluded.meeting_time;
             """,
             (
                 donor_id,
                 ngo_id,
+                donor_name,
                 ngo_name,
                 timestamp,
             ),
@@ -81,14 +84,14 @@ def batch_insert_meetings(meetings: list):
     """
     Insert many meetings at once
     """
-    print(meetings)
+    #print(meetings)
     conn = get_connection()
     try:
         cur = conn.cursor()
         cur.executemany(
             """
-            INSERT INTO schedule(donor_id, ngo_id, ngo_name, meeting_time)
-            VALUES(?, ?, ?, ?)
+            INSERT INTO schedule(donor_id, ngo_id, donor_name, ngo_name, meeting_time)
+            VALUES(?, ?, ?, ?, ?)
             ON CONFLICT(donor_id, ngo_id)
             DO UPDATE SET meeting_time=excluded.meeting_time;
             """,
@@ -167,6 +170,25 @@ def get_all_meetings():
         cur = conn.cursor()
         cur.execute(
             "SELECT * FROM schedule"
+        )
+        return cur.fetchall()
+    finally:
+        conn.close()
+
+def get_meetings_on_date(date: datetime):
+    parsed_date_day1 = datetime.strftime(date, "%Y-%m-%d")
+    parsed_date_day2 = datetime.strftime(date + timedelta(days=1), "%Y-%m-%d")
+    conn = get_connection()
+    try:
+        cur = conn.cursor()
+        cur.execute(
+            """
+            SELECT * 
+            FROM schedule
+            WHERE date(meeting_time) BETWEEN ? AND ? 
+            ORDER BY donor_id ASC
+            """,
+            (parsed_date_day1, parsed_date_day2),
         )
         return cur.fetchall()
     finally:

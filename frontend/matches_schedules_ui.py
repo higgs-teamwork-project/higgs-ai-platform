@@ -29,9 +29,10 @@ Generated matches + schedule on RHS
 # top level style sheet for this page.
 
 class MatchesTabView(QWidget):
-    def __init__(self, donor_id):
+    def __init__(self, donor_id, donor_name):
         super().__init__()
         self.donor_id = donor_id
+        self.donor_name = donor_name
         self.threadpool = QThreadPool()
         # --- layout ---
         self.tab_layout = QVBoxLayout(self)
@@ -87,13 +88,13 @@ class MatchesTabView(QWidget):
         try:
             response = requests.get(f"http://127.0.0.1:8000/api/getmatches/{self.donor_id}")
             data = response.json() # get list of dictionaries
-            print(data)
+            #print(data)
             if len(data) == 0:
                 return []
             else:
                 parsed_data = [[d["ngo_id"], d["name"], d["similarity"]] for d in data]
-                print(parsed_data)
-                print(len(parsed_data))
+             #   print(parsed_data)
+              #  print(len(parsed_data))
                 return parsed_data
         except:
             QMessageBox.critical(self, "Server Error", "Could not retrieve donors. Please try again later.")
@@ -103,7 +104,7 @@ class MatchesTabView(QWidget):
         try:
             response = requests.get(f"http://127.0.0.1:8000/api/schedule/donor/{self.donor_id}/meetings")
             data = response.json()
-            print(data)
+            #print(data)
 
             if len(data) == 0:
                 return []
@@ -117,7 +118,7 @@ class MatchesTabView(QWidget):
         try:
             response = requests.get(f"http://127.0.0.1:8000/api/schedule/get-all-meetings")
             data = response.json()
-            print(data)
+            #print(data)
 
             if len(data) == 0:
                 return []
@@ -131,7 +132,7 @@ class MatchesTabView(QWidget):
         try:
             response = requests.get(f"http://127.0.0.1:8000/api/donors/{id}/recommendations?top_k=22 &save_matches=True")
             data = response.json()
-            print(data)
+            #print(data)
             return data
         except Exception as e:
             QMessageBox.critical(self, "Server Error", "Could not generate matches. Please try again later.")
@@ -168,7 +169,7 @@ class MatchesTabView(QWidget):
         existing_meetings = self.get_existing_meetings()
         # first make recs into right format
         recs = [{"donor_id": self.donor_id, "ngo_id": d["ngo_id"], "ngo_name": d["ngo"]["name"]} for d in results]
-        generate_schedule(existing_meetings, recs, datetime(2026, 7, 1))
+        generate_schedule(existing_meetings, recs, datetime(2026, 7, 1), self.donor_name)
         donor_data = self.parse_schedule()
         self.schedule.remake(donor_data)
 
@@ -194,7 +195,7 @@ class GenerateOutputWindow(QMainWindow):
         main_layout.setSpacing(0)
         self.main_view = QSplitter(Qt.Orientation.Horizontal)
 
-        self.nav_bar = HNavBar(["export-matches", "dashboard", "add-orgs", "logout"], self)
+        self.nav_bar = HNavBar(["export-matches", "export-schedule", "dashboard", "add-orgs", "logout"], self)
 
         donors_table_background = QWidget()
         donors_table_background_layout = QVBoxLayout()
@@ -227,7 +228,7 @@ class GenerateOutputWindow(QMainWindow):
                 self.current_detail = None
             row = current.row()
             data = self.donors_table.get_data(row)
-            self.current_detail = MatchesTabView(donor_id=data[0])
+            self.current_detail = MatchesTabView(donor_id=data[0], donor_name=data[1])
             self.details_layout.addWidget(self.current_detail)
             self.main_view.setStretchFactor(1,1)
 

@@ -56,7 +56,7 @@ def update_time_slot(t: datetime, end1: datetime, end2: datetime, start1: dateti
         else:
             return t + timedelta(minutes=15)
 
-def update_schedule_db(donor_schedule: dict):
+def update_schedule_db(donor_schedule: dict, donor_name: str):
     print("updating db")
     """
     parse tuples - donor schedule has structure (donor id, meeting time) -> ngo id, and 
@@ -67,7 +67,7 @@ def update_schedule_db(donor_schedule: dict):
     for d in donor_schedule:
         clean_name = donor_schedule[d][1].replace('“', '"').replace('”', '"').replace('’', "'")
         clean_date = d[1].isoformat()
-        insert_meetings.append([d[0], donor_schedule[d][0], clean_name, clean_date])
+        insert_meetings.append([d[0], donor_schedule[d][0], donor_name, clean_name, clean_date])
     
     payload = {
         "meetings": insert_meetings
@@ -85,7 +85,7 @@ def update_schedule_db(donor_schedule: dict):
     except requests.exceptions.ConnectionError:
         print("Could not connect to the backend server to add meetings.")
 
-def generate_schedule(meetings: list, matches: list, DAY1: datetime):
+def generate_schedule(meetings: list, matches: list, DAY1: datetime, donor_name: str):
     print("GENERATING SCHEDULE")
     """
     generate a schedule of meetings for donor x ngo matches in param matches, according to prexisting meetings from param meetings and on event day param day1. 
@@ -138,7 +138,7 @@ def generate_schedule(meetings: list, matches: list, DAY1: datetime):
                             found = True # stop loop     
                             existing_matches.append((donor, ngo[0]))                      
         ## update db with new meetings
-    update_schedule_db(donor_schedule)
+    update_schedule_db(donor_schedule, donor_name)
 
 def get_rows_cols_dict(DAY1: datetime):
     START_DAY1 = datetime.combine(DAY1, time(15,0))
@@ -152,7 +152,6 @@ def get_rows_cols_dict(DAY1: datetime):
     row = 1
     col = 1
     while cur:
-        print(cur)
         result[cur] = (row, col)
         cur = update_time_slot(cur, end1=END_DAY1, end2=END_DAY2, start1=START_DAY1, start2=START_DAY2)
         if cur == START_DAY2:

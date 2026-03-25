@@ -51,7 +51,9 @@ class HNavBar(QWidget):
                     self.create_nav_button("View Matches", self.output_page)
                 case "export-matches":
                     self.create_nav_button("Export Matches To Excel", self.save_matches_excel)
-                
+                case "export-schedule":
+                    self.create_nav_button("Export Schedule To Excel", self.save_schedule_excel)
+
     def create_nav_button(self, lbl: str, cb):
         nav_btn = QPushButton(text=lbl)
         nav_btn.setProperty("styling", "outline")
@@ -65,6 +67,14 @@ class HNavBar(QWidget):
         except Exception as e:
             QMessageBox.critical(self.main_window, "Cannot Save File", "Cannot save the spreadsheet right now. Please try again later.")
             print(e)
+
+    def save_schedule_excel(self):
+        try:
+            response = requests.post(f"http://127.0.0.1:8000/api/download-schedule-workbook")
+        except Exception as e:
+            QMessageBox.critical(self.main_window, "Cannot Save File", "Cannot save the spreadsheet right now. Please try again later.")
+            print(e)        
+            print(response.text)
 
     def logout(self):
         from main_ui import LoginWindow
