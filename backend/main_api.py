@@ -13,6 +13,8 @@ import database.schedule_db as schedule_db
 
 app = FastAPI()
 
+MAX_MATCHES = 22 # takes into account: 13 min meetings, with 2 mins in between, with two 7 minutes breaks, over 2 days from 3pm-6pm
+
 # ---------- Matchmaking: normalize raw AI scores to user-friendly percentages ----------
 # Raw cosine similarity is typically 0.2–0.7. We map top score -> 100% and filter out
 # results that are "too far" from the top so the list looks consistent.
