@@ -187,7 +187,8 @@ async def delete_ngos(body: DeleteNGOsBody):
     if not body.ids:
         raise HTTPException(status_code=400, detail="ids must be a non-empty list")
     deleted = dataset_db.delete_ngos(body.ids)
-    return {"status": "ok", "deleted": deleted}
+    deleted_meetings = schedule_db.delete_many_ngo_meetings(body.ids)
+    return {"status": "ok", "deleted": deleted, "deleted_meetings": deleted_meetings}
 
 
 # ---------- Single-donor matchmaking (donor entered by user, not from DB) ----------
@@ -384,4 +385,5 @@ async def delete_donors(body: DeleteDonorsBody):
     if not body.ids:
         raise HTTPException(status_code=400, detail="ids must be a non-empty list")
     deleted = dataset_db.delete_donors(body.ids)
-    return {"status": "ok", "deleted": deleted}
+    deleted_meetings = schedule_db.delete_many_donor_meetings(body.ids)
+    return {"status": "ok", "deleted": deleted, "deleted_meetings": deleted_meetings}
