@@ -84,9 +84,9 @@ class LoginWindow(QMainWindow):
 
 if __name__ == "__main__":
     app = QApplication(sys.argv)
-    window = LoginWindow()
+    #window = LoginWindow()
     ## FOR TESTING PURPOSES
-    #window = HIGGSApp()
+    window = GenerateOutputWindow()
     style = loadstylesheet()
     print(style)
     if style:

@@ -2,7 +2,8 @@ from PySide6.QtCore import (Qt)
 from typing import List
 from PySide6.QtWidgets import (QWidget,
                                QHBoxLayout,
-                               QPushButton)
+                               QPushButton,
+                               QMessageBox)
 from load_style_ui import loadstylesheet
 """"
 Possible options on the horizontal menu at the top of the pages:
@@ -13,9 +14,10 @@ login
 signup
 settings
 event-matches (output page)
-
+export-matches
+export-schedule
 """
-
+import requests
 class HNavBar(QWidget):
     def __init__(self, options: List[str], mainwindow):
         super().__init__()
@@ -47,6 +49,8 @@ class HNavBar(QWidget):
                     self.create_nav_button("Settings", self.settings)
                 case "event-matches":
                     self.create_nav_button("View Matches", self.output_page)
+                case "export-matches":
+                    self.create_nav_button("Export Matches To Excel", self.save_matches_excel)
                 
     def create_nav_button(self, lbl: str, cb):
         nav_btn = QPushButton(text=lbl)
@@ -54,6 +58,13 @@ class HNavBar(QWidget):
         nav_btn.setCursor(Qt.CursorShape.PointingHandCursor)
         self.nav_bar.addWidget(nav_btn)
         nav_btn.clicked.connect(cb)
+
+    def save_matches_excel(self):
+        try:
+            response = requests.post(f"http://127.0.0.1:8000/api/download-matches-workbook")
+        except Exception as e:
+            QMessageBox.critical(self.main_window, "Cannot Save File", "Cannot save the spreadsheet right now. Please try again later.")
+            print(e)
 
     def logout(self):
         from main_ui import LoginWindow
