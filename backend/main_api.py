@@ -376,7 +376,12 @@ async def get_meeting(donor_id: int, ngo_id: int):
     return meeting
 
 class MeetingList(BaseModel):
-    meetings: List[Tuple[int, int, str, str, datetime]] # (donor id, ngo id, donor_name, ngo_name, meeting time)
+    meetings: List[Tuple[int, 
+                         int, 
+                         str, 
+                         str, 
+                         datetime | None
+                ]] # (donor id, ngo id, donor_name, ngo_name, meeting time)
 
 @app.post("/api/schedule/add-many-meetings")
 async def add_many_meetings(body: MeetingList):
@@ -544,7 +549,8 @@ def create_schedule_file(name: str, data: list, DAY1: datetime):
 
     # meetings
     for meeting in data:
-        print(meeting["meeting_time"])
+        if meeting["meeting_time"] is None:
+            continue
         meeting_time_dt = datetime.strptime(meeting["meeting_time"], "%Y-%m-%d %H:%M:%S")
         meeting_row = row_mapping[meeting_time_dt][0]
         meeting_sheet = row_mapping[meeting_time_dt][1]
