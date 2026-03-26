@@ -29,11 +29,11 @@ Generated matches + schedule on RHS
 # top level style sheet for this page.
 
 class MatchesTabView(QWidget):
-    def __init__(self, donor_id, donor_name):
+    def __init__(self, donor_id, donor_name, threadpool: QThreadPool):
         super().__init__()
         self.donor_id = donor_id
         self.donor_name = donor_name
-        self.threadpool = QThreadPool()
+        self.threadpool = threadpool
         # --- layout ---
         self.tab_layout = QVBoxLayout(self)
 
@@ -196,6 +196,8 @@ class GenerateOutputWindow(QMainWindow):
         self.resize(800, 500)
         central_widget = QWidget()
 
+        self.main_threadpool = QThreadPool()
+
         main_layout = QVBoxLayout()
         main_layout.setContentsMargins(0, 0, 0, 0)
         main_layout.setSpacing(0)
@@ -234,7 +236,7 @@ class GenerateOutputWindow(QMainWindow):
                 self.current_detail = None
             row = current.row()
             data = self.donors_table.get_data(row)
-            self.current_detail = MatchesTabView(donor_id=data[0], donor_name=data[1])
+            self.current_detail = MatchesTabView(donor_id=data[0], donor_name=data[1], threadpool=self.main_threadpool)
             self.details_layout.addWidget(self.current_detail)
             self.main_view.setStretchFactor(1,1)
 
