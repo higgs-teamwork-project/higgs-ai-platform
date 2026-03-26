@@ -56,7 +56,8 @@ class LoginWindow(QMainWindow):
 
     def open_dashboard(self):
         self.hide()
-        self.dashboard_window = DashboardWindow(parent_window=self)
+        self.dashboard_window = DashboardWindow()
+        self.dashboard_window.parent_window = self
         self.dashboard_window.show()
 
     def handle_login(self):
