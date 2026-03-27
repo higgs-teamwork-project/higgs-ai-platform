@@ -18,7 +18,7 @@ class DashboardWindow(QMainWindow):
         main_layout.setSpacing(20)
 
         # Navigation Bar
-        navbar_content = HNavBar(["settings", "logout"], self)
+        navbar_content = HNavBar(["logout"], self)
         main_layout.addWidget(navbar_content)
 
         # Page Title
@@ -42,7 +42,7 @@ class DashboardWindow(QMainWindow):
         self.tile_match_btn.setCursor(Qt.CursorShape.PointingHandCursor)
         tiles_layout.addWidget(self.tile_match_btn)
 
-        self.tile_schedule_btn = QPushButton("Match & Schedule")
+        self.tile_schedule_btn = QPushButton("Match and Schedule")
         self.tile_schedule_btn.setProperty("styling", "tileButton")
         self.tile_schedule_btn.clicked.connect(self.open_match_page)
         self.tile_schedule_btn.setCursor(Qt.CursorShape.PointingHandCursor)
@@ -52,7 +52,7 @@ class DashboardWindow(QMainWindow):
         self.tile_admin_btn.setProperty("styling", "tileButton")
         self.tile_admin_btn.clicked.connect(self.open_admin_dashboard)
         self.tile_admin_btn.setCursor(Qt.CursorShape.PointingHandCursor)
-        tiles_layout.addWidget(self.tile_admin_btn)
+        #tiles_layout.addWidget(self.tile_admin_btn)
 
         tiles_layout.addStretch()
         main_layout.addWidget(tiles_content)

@@ -5,7 +5,7 @@ from PySide6.QtWidgets import (QWidget,
                                QMainWindow,
                                QApplication,
                                QVBoxLayout,
-                               QHBoxLayout,
+                               QStackedWidget,
                                QPushButton,
                                QTabWidget,
                                QMessageBox,
@@ -56,8 +56,7 @@ class MatchesTabView(QWidget):
         self.matches_spinner.setTextVisible(False)
         self.matches_outer_layout.addWidget(self.matches_spinner)
 
-        data = self.parse_matches_table()
-        self.matches_table = MatchesTable(data) # data = [] if no saved matches
+        self.matches_table = MatchesTable([]) # data = [] if no saved matches
         self.matches_outer_layout.addWidget(self.matches_table)
             
         self.generate_matches_btn = QPushButton("Generate Matches")
@@ -66,10 +65,8 @@ class MatchesTabView(QWidget):
         self.matches_outer_layout.addWidget(self.generate_matches_btn, alignment=Qt.AlignmentFlag.AlignCenter)
 
         self.matches_spinner.hide()
-        if len(data) == 0:
-            self.matches_table.hide()
-        else:
-            self.generate_matches_btn.hide()
+        self.matches_table.hide()
+        self.generate_matches_btn.hide()
 
         # --- ngos with no meetings --
         self.no_meetings_tab = UnassignedTab([])
@@ -78,8 +75,7 @@ class MatchesTabView(QWidget):
         no_meetings_outer.addWidget(self.no_meetings_tab)
 
         # --- schedule tab ---
-        self.donor_schedule = self.parse_schedule()
-        self.schedule = Schedule(self.donor_schedule, datetime(2026, 7, 1), self.no_meetings_tab)
+        self.schedule = Schedule([], datetime(2026, 7, 1), self.no_meetings_tab)
         schedule_outer_layout = QVBoxLayout(self.schedule_tab)
         self.schedule_tab.setLayout(schedule_outer_layout)
         schedule_outer_layout.addWidget(self.schedule)
@@ -88,8 +84,19 @@ class MatchesTabView(QWidget):
         self.tab_layout.addWidget(self.tab_view)
         self.setLayout(self.tab_layout)
 
-    def return_results(self, d):
-        return d
+    def show_selection(self):
+        match_data = self.parse_matches_table()
+        schedule_data = self.parse_schedule()
+
+        if len(match_data) == 0:
+            self.matches_table.hide()
+            self.generate_matches_btn.show()
+        else:
+            self.generate_matches_btn.hide()
+            self.matches_table.set_data(match_data)
+            self.matches_table.show()
+
+        self.schedule.remake(schedule=schedule_data)        
 
     def parse_matches_table(self):
         try:
@@ -100,8 +107,8 @@ class MatchesTabView(QWidget):
                 return []
             else:
                 parsed_data = [[d["ngo_id"], d["name"], d["similarity"]] for d in data]
-             #   print(parsed_data)
-              #  print(len(parsed_data))
+            #   print(parsed_data)
+            #  print(len(parsed_data))
                 return parsed_data
         except:
             QMessageBox.critical(self, "Server Error", "Could not retrieve donors. Please try again later.")
@@ -143,7 +150,7 @@ class MatchesTabView(QWidget):
             return data
         except Exception as e:
             QMessageBox.critical(self, "Server Error", "Could not generate matches. Please try again later.")
-            print("ERROR: "+ e)
+            print(f"ERROR: {e}")
             return None
         
     def handle_new_matches(self, data):
@@ -215,30 +222,62 @@ class GenerateOutputWindow(QMainWindow):
         self.main_view.addWidget(donors_table_background)
         self.main_view.setStretchFactor(0,0)
 
-        self.donor_details_panel = QWidget()
-        self.details_layout = QVBoxLayout()
-        self.donor_details_panel.setLayout(self.details_layout)
-        self.main_view.addWidget(self.donor_details_panel)
+        self.details_layout = QStackedWidget()
+        self.main_view.addWidget(self.details_layout)
 
         main_layout.addWidget(self.nav_bar, alignment=Qt.AlignmentFlag.AlignTop)
         main_layout.addWidget(self.main_view, stretch=1)
         central_widget.setLayout(main_layout)
         self.setCentralWidget(central_widget)
 
-        self.current_detail = None
+        self.plain_view = QWidget()
+        self.details_layout.addWidget(self.plain_view)
+        self.details_layout.setCurrentWidget(self.plain_view)
+
+        self.map_donor_views = {}
+    # self.make_detail_panels()
+
+
+    def make_detail_panels(self):
+        donor_table_data = self.donors_table.get_model()
+        for row in range(donor_table_data.rowCount()):
+            donor_id = donor_table_data.index(row, 0).data()
+            donor_name = donor_table_data.index(row, 1).data()
+            if donor_id not in self.map_donor_views:
+                self.make_detail(donor_id, donor_name)
+
+    def make_detail(self, id, name):
+        new_view = MatchesTabView(donor_id=id, donor_name=name, threadpool=self.main_threadpool)
+        self.map_donor_views[id] = new_view
+        self.details_layout.addWidget(new_view)
 
     def change_detail_window(self, current, previous):
+        if not current.isValid():
+            return
+        
         # add a new detail window to RHS
-        if current.isValid():
-            if self.current_detail:
-                self.details_layout.removeWidget(self.current_detail)
-                self.current_detail.deleteLater()
-                self.current_detail = None
-            row = current.row()
-            data = self.donors_table.get_data(row)
-            self.current_detail = MatchesTabView(donor_id=data[0], donor_name=data[1], threadpool=self.main_threadpool)
-            self.details_layout.addWidget(self.current_detail)
-            self.main_view.setStretchFactor(1,1)
+        row = current.row()
+        data = self.donors_table.get_data(row)
+        donor_id = data[0]
+        donor_name = data[1]
+        if donor_id not in self.map_donor_views:
+            self.make_detail(donor_id, donor_name)
+        
+        target = self.map_donor_views[donor_id]
+        target.show_selection()
+        self.details_layout.setCurrentWidget(target)
+        self.main_view.setStretchFactor(1,1)
+        # if current.isValid():
+        #     if self.current_detail:
+        #         self.details_layout.removeWidget(self.current_detail)
+        #         self.current_detail.setParent(None)
+        #         self.current_detail.deleteLater()
+        #         self.current_detail = None
+        #     row = current.row()
+        #     data = self.donors_table.get_data(row)
+        #     self.current_detail = MatchesTabView(donor_id=data[0], donor_name=data[1], threadpool=self.main_threadpool)
+        #     self.details_layout.addWidget(self.current_detail)
+        #     self.main_view.setStretchFactor(1,1)
 
 if __name__ == "__main__":
     app = QApplication(sys.argv)

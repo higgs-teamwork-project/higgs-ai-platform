@@ -385,7 +385,7 @@ class MeetingList(BaseModel):
 
 @app.post("/api/schedule/add-many-meetings")
 async def add_many_meetings(body: MeetingList):
-    print("adding meetings api")
+    #print("adding meetings api")
     try:
         schedule_db.batch_insert_meetings(body.meetings)
         return {"status": "success", "message": "Meetings created"}
@@ -471,7 +471,7 @@ def create_file(name: str, data: list):
         for r in rows:
             sheet.append(r)
             if r[0] != prev_row_id and sheet.max_row > 3:
-                print("merge")
+                #print("merge")
                 merge_to = sheet.max_row - 1
                 merge_cells(prev_row_num, merge_to, sheet)
 
@@ -510,7 +510,7 @@ def create_schedule_file(name: str, data: list, DAY1: datetime):
             row = 2
         else:
             row = row + 1
-    print(row_mapping)
+    #print(row_mapping)
     # donor id sorted ASC. Each donor can see people on multiple days.
     column_mapping = {} # donor id -> (column, donor name)
     col = 2

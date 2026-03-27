@@ -71,7 +71,7 @@ def update_schedule_db(donor_schedule: dict, donor_name: str):
         "meetings": insert_meetings
     }
     try:
-        print(insert_meetings)
+        #print(insert_meetings)
         response = requests.post("http://127.0.0.1:8000/api/schedule/add-many-meetings", json=payload)
         backend_data = response.json()
         
@@ -103,7 +103,7 @@ def generate_schedule(meetings: list, matches: list, DAY1: datetime, donor_name:
 
     ngo_schedule, donor_schedule, existing_matches = get_schedule_dicts(meetings=meetings)
     donors = get_matches_list(matches=matches)
-    print(donors)
+    #print(donors)
     for donor in donors: 
         match_list = donors[donor] # for readability
         for ngo in match_list:
@@ -118,10 +118,10 @@ def generate_schedule(meetings: list, matches: list, DAY1: datetime, donor_name:
                 CURRENT_TIME = START_DAY1
                 found = False
                 while not found:
-                    print(f"Looping: Time={CURRENT_TIME}, InNGO={ (ngo[0], CURRENT_TIME) in ngo_schedule }, InDonor={ (donor, CURRENT_TIME) in donor_schedule }")
-                    print(ngo)
-                    print(ngo_schedule)
-                    print(donor_schedule)
+                   # print(f"Looping: Time={CURRENT_TIME}, InNGO={ (ngo[0], CURRENT_TIME) in ngo_schedule }, InDonor={ (donor, CURRENT_TIME) in donor_schedule }")
+                   # print(ngo)
+                   # print(ngo_schedule)
+                   # print(donor_schedule)
                     if (ngo[0], CURRENT_TIME) not in ngo_schedule and (donor, CURRENT_TIME) not in donor_schedule:
                         # add to schedules.
                         ngo_schedule[(ngo[0], CURRENT_TIME)] = donor
@@ -159,9 +159,35 @@ def get_rows_cols_dict(DAY1: datetime):
             row = row + 1
     return result
 
-class Schedule(QScrollArea):
-    def __init__(self, data, day_1: datetime, unassigned):
+
+class UnassignedTab(QWidget):
+    def __init__(self, names):
         super().__init__()
+        self.main_layout = QVBoxLayout()
+
+        self.none_lbl = QLabel("No NGO meetings are unscheduled for this donor.")
+        self.main_layout.addWidget(self.none_lbl, alignment=Qt.AlignmentFlag.AlignCenter)
+
+        self.names_box = QListWidget()
+        self.main_layout.addWidget(self.names_box)
+
+        self.setLayout(self.main_layout)
+        self.remake(names=names)
+
+    def remake(self, names):
+        if len(names) == 0:
+            self.names_box.hide()
+            self.none_lbl.show()
+        else:
+            self.none_lbl.hide()
+            self.names_box.show()
+            names_str = [m["ngo_name"] for m in names]
+            self.names_box.addItems(names_str)
+
+class Schedule(QScrollArea):
+    def __init__(self, data, day_1: datetime, unassigned: UnassignedTab):
+        super().__init__()
+        self.lbl = QLabel("There are no matches for this donor.")
 
         schedule_content = QWidget()
         self.schedule_grid = QGridLayout()
@@ -172,18 +198,17 @@ class Schedule(QScrollArea):
         self.unassigned_tab = unassigned
         self.time_mapping = get_rows_cols_dict(day_1)
 
+        self.schedule_grid.addWidget(self.lbl, 0, 0, alignment=Qt.AlignmentFlag.AlignCenter)
+        self.lbl.hide()
+
         self.remake(data)
 
     def remake(self, schedule):
-        # clear grid incase anything is on it
-        while self.schedule_grid.count():
-            self.schedule_grid.takeAt(0).widget().deleteLater()
-
         if len(schedule) == 0:
-            lbl = QLabel("There are no matches for this donor.")
-            self.schedule_grid.addWidget(lbl, 0, 0, alignment=Qt.AlignmentFlag.AlignCenter)
+            self.lbl.show()
             self.unassigned_tab.remake([])
         else:
+            self.lbl.hide()
             # make tabs that say day 1 and day 2
             time_heading_lbl = QLabel("MEETING TIME")
             time_heading_lbl.setAlignment(Qt.AlignmentFlag.AlignCenter)
@@ -227,27 +252,3 @@ class Schedule(QScrollArea):
                     name_lbl.setWordWrap(True)
                     self.schedule_grid.addWidget(name_lbl, row, col)
             self.unassigned_tab.remake(unassigned_meetings)
-
-class UnassignedTab(QWidget):
-    def __init__(self, names):
-        super().__init__()
-        self.main_layout = QVBoxLayout()
-
-        self.none_lbl = QLabel("No NGO meetings are unscheduled for this donor.")
-        self.main_layout.addWidget(self.none_lbl, alignment=Qt.AlignmentFlag.AlignCenter)
-
-        self.names_box = QListWidget()
-        self.main_layout.addWidget(self.names_box)
-
-        self.setLayout(self.main_layout)
-        self.remake(names=names)
-
-    def remake(self, names):
-        if len(names) == 0:
-            self.names_box.hide()
-            self.none_lbl.show()
-        else:
-            self.none_lbl.hide()
-            self.names_box.show()
-            names_str = [m["ngo_name"] for m in names]
-            self.names_box.addItems(names_str)

@@ -106,6 +106,9 @@ class DonorsTable(QWidget):
 
     def get_data(self, row):
         return self.donor_table_model._data[row]
+    
+    def get_model(self):
+        return self.donor_table_view.model()
 
 
 
